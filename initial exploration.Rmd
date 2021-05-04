@@ -1,10 +1,32 @@
 ---
 title: "initial exploration"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+```{r}
+library(tidyverse)
+```
+
+
+```{r}
+JC_201906_citibike_tripdata <- read_csv("JC-201906-citibike-tripdata.csv")
+JC_201907_citibike_tripdata <- read_csv("JC-201907-citibike-tripdata.csv")
+JC_201908_citibike_tripdata <- read_csv("JC-201908-citibike-tripdata.csv")
+JC_201909_citibike_tripdata <- read_csv("JC-201909-citibike-tripdata.csv")
+JC_201910_citibike_tripdata <- read_csv("JC-201910-citibike-tripdata.csv")
+JC_201911_citibike_tripdata <- read_csv("JC-201911-citibike-tripdata.csv")
+JC_201912_citibike_tripdata <- read_csv("JC-201912-citibike-tripdata.csv")
+JC_202001_citibike_tripdata <- read_csv("JC-202001-citibike-tripdata.csv")
+JC_202002_citibike_tripdata <- read_csv("JC-202002-citibike-tripdata.csv")
+JC_202003_citibike_tripdata <- read_csv("JC-202003-citibike-tripdata.csv")
+JC_202004_citibike_tripdata <- read_csv("JC-202004-citibike-tripdata.csv")
+JC_202005_citibike_tripdata <- read_csv("JC-202005-citibike-tripdata.csv")
+JC_202006_citibike_tripdata <- read_csv("JC-202006-citibike-tripdata.csv")
+```
 
