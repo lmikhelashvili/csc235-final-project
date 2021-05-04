@@ -4,4 +4,4 @@
 # Ada Library Information
 *.ali
 .Rproj.user
-.csv.zip
+*.csv.zip
