@@ -35,8 +35,28 @@ mega_dataset<-full_join(april_2019, july_2019 )%>%
 
 ```{r}
 library(lubridate)
+# Add variable with only year, month, day
 mega_dataset <- mega_dataset%>%
   mutate(starttime = as_datetime(starttime))%>%
-  mutate(start_time_block = floor_date(starttime, unit = "day"))
+ # mutate(start_time_block = floor_date(starttime, unit = "month"))%>%
+  mutate(start_month = format(starttime, format="%Y/%m"))
 ```
+
+to do: 
+
+- explore the average duration of rides: how does it change over time?
+
+- create a leaflet map
+
+```{r}
+station_id_popularity <- mega_dataset%>%
+  group_by(start_month, `start station id`)%>%
+  summarize(count = n())%>%
+  arrange(desc(count))%>%
+  mutate(popularity = ifelse(count < 1000, "Low", ifelse(count < 5000, "Moderate", "High")))
+```
+
+
+
+
 
