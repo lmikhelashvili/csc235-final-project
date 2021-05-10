@@ -33,4 +33,10 @@ mega_dataset<-full_join(april_2019, july_2019 )%>%
   
 ```
 
-lika
+```{r}
+library(lubridate)
+mega_dataset <- mega_dataset%>%
+  mutate(starttime = as_datetime(starttime))%>%
+  mutate(start_time_block = floor_date(starttime, unit = "day"))
+```
+
