@@ -1,0 +1,104 @@
+---
+title: "Citibike renters' date of birth"
+author: "Ivy Chen"
+date: "5/10/2021"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(rio)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(tidyr)
+library(plotly)
+library(lobstr)
+library(tidytext)
+library(scales)
+library(leaflet)
+```
+```{r}
+april_2019 <- read_csv("201904-citibike-tripdata.csv") #april 2019
+july_2019 <- read_csv("201907-citibike-tripdata.csv") #july 2019
+october_2019 <- read_csv("201910-citibike-tripdata.csv") #october 2019
+january_2020 <- read_csv("202001-citibike-tripdata.csv") #january 2020
+april_2020 <- read_csv("202004-citibike-tripdata.csv") #april 2020
+july_2020 <- read_csv("202007-citibike-tripdata.csv") #july 2020
+```
+```{r}
+mega_dataset<-full_join(april_2019, july_2019 )%>%
+  full_join(october_2019)%>%
+  full_join(january_2020)%>%
+  full_join(april_2020) %>%
+  full_join(july_2020)
+```
+
+```{r}
+mega_dataset <- mega_dataset%>%
+  rename(start_station_name = 'start station name',
+         start_station_id='start station id',
+         start_station_latitude='start station latitude',
+         start_station_longitude='start station longitude',
+         end_station_id= 'end station id',
+         end_station_latitude='end station latitude',
+         end_station_longitude='end station longitude',
+         end_station_name='end station name',
+         birth_year='birth year')
+mega_dataset <- mega_dataset%>%
+  mutate(starttime=as_datetime(starttime))%>%
+  mutate(date=floor_date(starttime,unit="day"))
+```
+```{r}
+month_station<- mega_dataset%>%
+  group_by(date,start_station_id,start_station_name,start_station_longitude,start_station_latitude)%>%
+  summarise(count=n())%>%
+  arrange(desc(count))
+station_plot <- leaflet()%>%
+  addTiles()%>%
+  addMarkers(lng = ~start_station_longitude, lat = ~ start_station_latitude, data = month_station,
+             popup = ~start_station_name)
+station_plot
+# Distribution of bike usage (counting the bike rentals)
+ggplotly(
+mega_dataset%>%
+  group_by(date)%>%
+  summarize(count = n())%>%
+  ggplot(aes(x = date, y = count))+
+  geom_line()+
+  labs( title = "Distribution of bike usage over time"))
+# Distribution of poeple's date of birth: how does it change over time? - Salwa
+
+```
+
+```{r}
+# Proportion of subscription type (user type) from mega_data -Ivy
+subscriptionType<-mega_dataset%>%
+  group_by(usertype)%>%
+  summarize(count = n())%>%
+  arrange(desc(count))
+```
+
+```{r}
+# people that rent and return the bike at the same station might be residents in that area
+
+sameStartAndEnd<-mega_dataset%>%
+  filter(start_station_name == end_station_name)
+
+subType_same<-sameStartAndEnd%>%
+  group_by(usertype)%>%
+  summarize(count = n())%>%
+  arrange(desc(count))
+```
+
+```{r}
+# areas that have most subscriptions might imply that the neighborhood is wealthier
+
+sameStartAndEnd<-mega_dataset%>%
+  filter(start_station_name == end_station_name & usertype == "Subscriber" )%>%
+  group_by(start_station_name)%>%
+  summarize(count = n())%>%
+  arrange(desc(count))
+
+```
+
