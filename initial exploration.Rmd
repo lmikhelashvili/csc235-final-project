@@ -56,7 +56,7 @@ to do:
 
 ```{r}
 station_id_popularity <- mega_dataset%>%
-  rename(start_lon = `start station longitude`, start_lat = `start station latitude`)
+  rename(start_lon = `start station longitude`, start_lat = `start station latitude`)%>%
   group_by(start_month, `start station id`, start_lon, start_lat)%>%
   summarize(count = n())%>%
   arrange(desc(count))%>%
@@ -78,15 +78,15 @@ popularity_groups <- map(popularity_levels, station_levels)
 
 
 ```{r}
-station_id_popularity%>%
-  st_as_sf(coords = c("lon","lat"))%>%
+station_id_popularity <- station_id_popularity%>%
+  st_as_sf(coords = c("start_lon", "start_lat"))%>%
   st_set_crs(4326)
 
 icon.high <- makeAwesomeIcon(icon = 'bicycle', markerColor = 'red', iconColor = 'black', library = "fa")
 icon.moderate <-  makeAwesomeIcon(icon = 'bicycle', markerColor = 'orange', iconColor = 'black', library = "fa")
 icon.low <-  makeAwesomeIcon(icon = 'bicycle', markerColor = 'green', iconColor = 'black', library = "fa")
 
-pal <- colorFactor(c("red", "orange", "green"), domain = station_ratings$popularity_total)
+pal <- colorFactor(c("red", "orange", "green"), domain = station_id_popularity$popularity)
 
 leaflet()%>%
   addTiles(group = "OSM (default") %>%
@@ -94,17 +94,17 @@ leaflet()%>%
   addProviderTiles(providers$OpenTopoMap, group = "Topographic") %>%
   addAwesomeMarkers(data = popularity_groups[[1]],
              group = "High Popularity Stations",
-             popup = ~paste("<b>", name, "</b><br>", popularity_total, "popularity"),
+             popup = ~paste("<b>", name, "</b><br>", popularity, "popularity"),
              icon = icon.high
              )%>%
   addAwesomeMarkers(data = popularity_groups[[2]],
              group ="Moderate Popularity Stations",
-             popup = ~paste("<b>", name, "</b><br>", popularity_total, "popularity"),
+             popup = ~paste("<b>", name, "</b><br>", popularity, "popularity"),
              icon = icon.moderate
              )%>%
   addAwesomeMarkers(data = popularity_groups[[3]],
              group = "Low Popularity Stations",
-             popup = ~paste("<b>", name, "</b><br>", popularity_total, "popularity"),
+             popup = ~paste("<b>", name, "</b><br>", popularity, "popularity"),
              icon = icon.low
              )%>%
   addLayersControl(
