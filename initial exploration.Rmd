@@ -89,6 +89,8 @@ icon.low <-  makeAwesomeIcon(icon = 'bicycle', markerColor = 'green', iconColor 
 pal <- colorFactor(c("red", "orange", "green"), domain = station_id_popularity$popularity)
 
 # add station name (address)
+# make a function 
+# scale the markers to appear smaller when zoomed out
 leaflet()%>%
   addTiles(group = "OSM (default") %>%
   addProviderTiles(providers$Esri.WorldImagery, group = "Satellite") %>%
