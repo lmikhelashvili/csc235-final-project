@@ -67,6 +67,10 @@ station_id_popularity <- mega_dataset%>%
 ```{r}
 popularity_levels <- c("High", "Moderate", "Low")
 
+station_id_popularity <- station_id_popularity%>%
+  st_as_sf(coords = c("start_lon", "start_lat"))%>%
+  st_set_crs(4326)
+
 station_levels <- function(popularity_arg){
   station_id_popularity %>%
     filter(popularity == popularity_arg)
@@ -78,10 +82,6 @@ popularity_groups <- map(popularity_levels, station_levels)
 
 
 ```{r}
-station_id_popularity <- station_id_popularity%>%
-  st_as_sf(coords = c("start_lon", "start_lat"))%>%
-  st_set_crs(4326)
-
 icon.high <- makeAwesomeIcon(icon = 'bicycle', markerColor = 'red', iconColor = 'black', library = "fa")
 icon.moderate <-  makeAwesomeIcon(icon = 'bicycle', markerColor = 'orange', iconColor = 'black', library = "fa")
 icon.low <-  makeAwesomeIcon(icon = 'bicycle', markerColor = 'green', iconColor = 'black', library = "fa")
@@ -94,17 +94,17 @@ leaflet()%>%
   addProviderTiles(providers$OpenTopoMap, group = "Topographic") %>%
   addAwesomeMarkers(data = popularity_groups[[1]],
              group = "High Popularity Stations",
-             popup = ~paste("<b>", name, "</b><br>", popularity, "popularity"),
+             popup = ~paste("<b>", `start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
              icon = icon.high
              )%>%
   addAwesomeMarkers(data = popularity_groups[[2]],
              group ="Moderate Popularity Stations",
-             popup = ~paste("<b>", name, "</b><br>", popularity, "popularity"),
+             popup = ~paste("<b>", `start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
              icon = icon.moderate
              )%>%
   addAwesomeMarkers(data = popularity_groups[[3]],
              group = "Low Popularity Stations",
-             popup = ~paste("<b>", name, "</b><br>", popularity, "popularity"),
+             popup = ~paste("<b>", `start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
              icon = icon.low
              )%>%
   addLayersControl(
