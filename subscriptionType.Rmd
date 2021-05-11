@@ -96,7 +96,138 @@ subType_same<-sameStartAndEnd%>%
 
 sameStartAndEnd<-mega_dataset%>%
   filter(start_station_name == end_station_name & usertype == "Subscriber" )%>%
+  group_by(start_station_name, start_station_longitude, start_station_latitude)%>%
+  summarize(count = n())%>%
+  arrange(desc(count))%>%
+  head(20)
+
+wealthy_plot <- leaflet()%>%
+  addTiles()%>%
+  addMarkers(lng = ~start_station_longitude, lat = ~ start_station_latitude, data = sameStartAndEnd,
+             popup = ~start_station_name)
+wealthy_plot
+```
+
+```{r}
+# compare subscriber numbers between April2019 and April2020
+subscribersApril2019<-april_2019%>%
+  filter(usertype=="Subscriber")%>%
+  group_by(usertype)%>%
+  summarise(count=n())
+
+subscribersApril2020<-april_2020%>%
+  filter(usertype=="Subscriber")%>%
+  group_by(usertype)%>%
+  summarise(count=n())
+
+
+```
+Dramatic decrease
+
+```{r}
+typeApril2019<-april_2019%>%
+  group_by(usertype)%>%
+  summarise(count=n())
+vec<-c(201904)
+vec
+typeApril2019$month<-vec
+
+typeJuly2019<-july_2019%>%
+  group_by(usertype)%>%
+  summarise(count=n())
+vec<-c(201907)
+vec
+typeJuly2019$month<-vec
+
+typeOct2019<-october_2019%>%
+  group_by(usertype)%>%
+  summarise(count=n())
+vec<-c(201910)
+vec
+typeOct2019$month<-vec
+
+typeJan2020<-january_2020%>%
+  group_by(usertype)%>%
+  summarise(count=n())
+vec<-c(202001)
+vec
+typeJan2020$month<-vec
+
+typeApril2020<-april_2020%>%
+  group_by(usertype)%>%
+  summarise(count=n())
+vec<-c(202004)
+vec
+typeApril2020$month<-vec
+
+typeJuly2020<-july_2020%>%
+  group_by(usertype)%>%
+  summarise(count=n())
+vec<-c(202007)
+vec
+typeJuly2020$month<-vec
+
+full_sub<-typeApril2019%>%
+  full_join(typeJuly2019)%>%
+  full_join(typeOct2019)%>%
+  full_join(typeJan2020)%>%
+  full_join(typeApril2020)%>%
+  full_join(typeJuly2020)
+
+ggplot(full_sub, aes(fill=usertype, y=count, x=month)) + 
+    geom_bar(position="stack", stat="identity") 
+```
+
+
++      scale_x_continuous(name ="Month",  limits=c("201904","201907","201910", "202001", "202004", "202007")
+
+# bar chart for most popular start and end stations
+
+```{r}
+popular_start<-mega_dataset%>%
   group_by(start_station_name)%>%
+  summarize(count = n())%>%
+  arrange(desc(count))
+```
+
+```{r}
+poptime_start<-mega_dataset%>%
+  mutate(starthour = hour(starttime))%>%
+  filter(start_station_name == "Pershing Square North")%>%
+  select(start_station_name, starthour)%>%
+  group_by(start_station_name, starthour)%>%
+  summarise(countstart=n())%>%
+  arrange(desc(countstart))
+
+PershingStartPlot<-ggplot(data = poptime_start, aes(x = starthour, y = countstart))+
+  geom_line()
+PershingStartPlot
+
+poptime_stop<-mega_dataset%>%
+  mutate(stophour= hour(stoptime))%>%
+  filter(end_station_name == "Pershing Square North")%>%
+  select(end_station_name,stophour)%>%
+  group_by(end_station_name,stophour)%>%
+  summarise(countstop=n())%>%
+  arrange(desc(countstop))
+
+PershingStopPlot<-ggplot(data = poptime_stop, aes(x = stophour, y = countstop))+
+  geom_line()
+PershingStopPlot
+
+```
+
+```{r}
+poptimePershing<-poptime_start%>%full_join(poptime_stop, by "start_station_name" = "end_station_name" )
+
+ggplot(poptime, aes(x=hour)) + 
+  geom_line(aes(y = count), color = "darkred") + 
+  geom_line(aes(y = count), color="steelblue", linetype="twodash") 
+```
+
+```{r}
+popular_end<-mega_dataset%>%
+  group_by(end_station_name)%>%
   summarize(count = n())%>%
   arrange(desc(count))
 
