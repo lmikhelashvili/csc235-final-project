@@ -88,6 +88,7 @@ icon.low <-  makeAwesomeIcon(icon = 'bicycle', markerColor = 'green', iconColor 
 
 pal <- colorFactor(c("red", "orange", "green"), domain = station_id_popularity$popularity)
 
+# add station name (address)
 leaflet()%>%
   addTiles(group = "OSM (default") %>%
   addProviderTiles(providers$Esri.WorldImagery, group = "Satellite") %>%
@@ -108,9 +109,9 @@ leaflet()%>%
              icon = icon.low
              )%>%
   addLayersControl(
-    baseGroups = c("OSM (default)", "Satellite", "Topographic"),
+    baseGroups = c("OSM (default)", "Satellite", "Topographic", "2019/04", "2019/07", "2019/10", "2020/01", "2020/04", "2020/07"),
     overlayGroups = c("High Popularity Stations", "Moderate Popularity Stations", "Low Popularity Stations")
-)
+    )
 ```
 
 
