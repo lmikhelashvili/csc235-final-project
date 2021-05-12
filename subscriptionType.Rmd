@@ -78,7 +78,8 @@ subscriptionType<-mega_dataset%>%
   summarize(count = n())%>%
   arrange(desc(count))
 ```
-
+Subscriber: 8329832
+Customer: 1739065
 ```{r}
 # people that rent and return the bike at the same station might be residents in that area
 
@@ -90,6 +91,8 @@ subType_same<-sameStartAndEnd%>%
   summarize(count = n())%>%
   arrange(desc(count))
 ```
+Subscriber:202641
+Customer: 127736
 
 ```{r}
 # areas that have most subscriptions might imply that the neighborhood is wealthier
@@ -101,6 +104,7 @@ sameStartAndEnd<-mega_dataset%>%
   arrange(desc(count))%>%
   head(20)
 
+# Top 20 neighborhoods of the most subscribers 
 wealthy_plot <- leaflet()%>%
   addTiles()%>%
   addMarkers(lng = ~start_station_longitude, lat = ~ start_station_latitude, data = sameStartAndEnd,
@@ -122,6 +126,8 @@ subscribersApril2020<-april_2020%>%
 
 
 ```
+2019: 1536661
+2020: 516495
 Dramatic decrease
 
 ```{r}
@@ -174,62 +180,110 @@ full_sub<-typeApril2019%>%
   full_join(typeApril2020)%>%
   full_join(typeJuly2020)
 
-ggplot(full_sub, aes(fill=usertype, y=count, x=month)) + 
-    geom_bar(position="stack", stat="identity") 
+ggplot(full_sub, aes(fill=usertype, y=count, x=as.factor(month)) )+ 
+    geom_bar(position = position_dodge(), stat="identity") +      scale_x_discrete(name ="Month",
+breaks=c(201904,201907,201910, 202001, 202004, 202007),
+  labels=c("April19", "July19", "Oct19", "Jan20", "April20", "July20"))
 ```
 
 
-+      scale_x_continuous(name ="Month",  limits=c("201904","201907","201910", "202001", "202004", "202007")
+
 
 # bar chart for most popular start and end stations
 
 ```{r}
+#popular start stations
 popular_start<-mega_dataset%>%
   group_by(start_station_name)%>%
   summarize(count = n())%>%
   arrange(desc(count))
 ```
-
+Pershing Square North
+E 17 St & Broadway
+W 21 St & 6 Ave
+West St & Chambers St
+Broadway & E 22 St
+12 Ave & W 40 St
+8 Ave & W 31 St
+Christopher St & Greenwich St
+Broadway & W 60 St
+Broadway & E 14 St
 ```{r}
-poptime_start<-mega_dataset%>%
-  mutate(starthour = hour(starttime))%>%
-  filter(start_station_name == "Pershing Square North")%>%
-  select(start_station_name, starthour)%>%
-  group_by(start_station_name, starthour)%>%
-  summarise(countstart=n())%>%
-  arrange(desc(countstart))
-
-PershingStartPlot<-ggplot(data = poptime_start, aes(x = starthour, y = countstart))+
-  geom_line()
-PershingStartPlot
-
-poptime_stop<-mega_dataset%>%
-  mutate(stophour= hour(stoptime))%>%
-  filter(end_station_name == "Pershing Square North")%>%
-  select(end_station_name,stophour)%>%
-  group_by(end_station_name,stophour)%>%
-  summarise(countstop=n())%>%
-  arrange(desc(countstop))
-
-PershingStopPlot<-ggplot(data = poptime_stop, aes(x = stophour, y = countstop))+
-  geom_line()
-PershingStopPlot
-
-```
-
-```{r}
-poptimePershing<-poptime_start%>%full_join(poptime_stop, by "start_station_name" = "end_station_name" )
-
-ggplot(poptime, aes(x=hour)) + 
-  geom_line(aes(y = count), color = "darkred") + 
-  geom_line(aes(y = count), color="steelblue", linetype="twodash") 
-```
-
-```{r}
+#popular end stations
 popular_end<-mega_dataset%>%
   group_by(end_station_name)%>%
   summarize(count = n())%>%
   arrange(desc(count))
-
 ```
+Pershing Square North
+E 17 St & Broadway
+W 21 St & 6 Ave
+West St & Chambers St
+Broadway & E 22 St
+12 Ave & W 40 St
+8 Ave & W 31 St
+Christopher St & Greenwich St
+Broadway & W 60 St
+Broadway & E 14 St
+(same as start stations, only the orders are different)
+
+```{r}
+# create function for top 10 popular start stations
+popStations <- function(Station) {
+  dataset1<- mega_dataset%>%
+  mutate(starthour = hour(starttime))%>%
+  filter(start_station_name == Station)%>%
+  select(start_station_name, starthour)%>%
+  group_by(start_station_name, starthour)%>%
+  summarise(countstart=n())%>%
+  arrange(desc(countstart))%>%
+  rename(station_name = start_station_name)
+  
+  dataset2<- mega_dataset%>%
+  mutate(stophour = hour(stoptime))%>%
+  filter(end_station_name == Station)%>%
+  select(end_station_name, stophour)%>%
+  group_by(end_station_name, stophour)%>%
+  summarise(countstop=n())%>%
+  arrange(desc(countstop))%>%
+  rename(station_name = end_station_name)
+  
+  # join start and end time to create a two geomline graph
+poptimePershing<-dataset1%>%full_join(dataset2, by = "station_name")
+
+colors <- c("start time" = "darkred", "end time" = "steelblue")
+
+PerishPlot<-ggplot(poptimePershing) + 
+  geom_line(aes(x = starthour, y = countstart, color = "start time")) + 
+  geom_line(aes(x = stophour,y = countstop, color="end time")) + labs( x = "Time", y = "Frequency of rentals and returns", color = "Legend") +
+    scale_color_manual(values = colors)+ ggtitle(paste0(Station, " ", "Station Popular Time Blocks"))
+return(PerishPlot)
+}
+```
+
+```{r}
+Pershing_Square_North<-popStations("Pershing Square North")
+Pershing_Square_North
+E_17<-popStations("E 17 St & Broadway")
+E_17
+W_21<-popStations("W 21 St & 6 Ave")
+W_21
+westSt<-popStations("West St & Chambers St")
+westSt
+Broadway<-popStations("Broadway & E 22 St")
+Broadway
+twelveAve<-popStations("12 Ave & W 40 St")
+twelveAve
+eightAve<-popStations("8 Ave & W 31 St")
+eightAve
+Christopher<-popStations("Christopher St & Greenwich St")
+Christopher
+BroadwayW<-popStations("Broadway & W 60 St")
+BroadwayW
+BroadwayE<-popStations("Broadway & E 14 St")
+BroadwayE
+```
+
+
+
 
