@@ -81,7 +81,7 @@ subscriptionType<-mega_dataset%>%
 Subscriber: 8329832
 Customer: 1739065
 ```{r}
-# people that rent and return the bike at the same station might be residents in that area
+# people that rent and return the bike at the same station might be residents in that area: higher proportion of subscribers?
 
 sameStartAndEnd<-mega_dataset%>%
   filter(start_station_name == end_station_name)
@@ -95,7 +95,7 @@ Subscriber:202641
 Customer: 127736
 
 ```{r}
-# areas that have most subscriptions might imply that the neighborhood is wealthier
+# areas that have most subscriptions might imply that the neighborhood is wealthier or that place is business area that commuters rent and return Citibikes frequently in those busy stations
 
 sameStartAndEnd<-mega_dataset%>%
   filter(start_station_name == end_station_name & usertype == "Subscriber" )%>%
@@ -196,7 +196,15 @@ breaks=c(201904,201907,201910, 202001, 202004, 202007),
 popular_start<-mega_dataset%>%
   group_by(start_station_name)%>%
   summarize(count = n())%>%
-  arrange(desc(count))
+  arrange(desc(count))%>%
+  head(20)
+
+popStart_bar<-ggplot(popular_start, aes(x = reorder(start_station_name, -count), count) )+ 
+    geom_bar(stat='identity', fill = "#5290C7") + 
+    xlab("Location") + ylab("Rental Count") +
+    labs(title = "Top 20 Popular Citibike Rental Locations")+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+popStart_bar
 ```
 Pershing Square North
 E 17 St & Broadway
@@ -213,7 +221,16 @@ Broadway & E 14 St
 popular_end<-mega_dataset%>%
   group_by(end_station_name)%>%
   summarize(count = n())%>%
-  arrange(desc(count))
+  arrange(desc(count))%>%
+  head(20)
+
+
+popEnd_bar<-ggplot(popular_end, aes(x = reorder(end_station_name, -count), count) )+ 
+    geom_bar(stat='identity', fill = "#5290C7") + 
+    xlab("Location") + ylab("Return Count") +
+    labs(title = "Top 20 Popular Citibike Return Locations")+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+popEnd_bar
 ```
 Pershing Square North
 E 17 St & Broadway
@@ -225,15 +242,15 @@ Broadway & E 22 St
 Christopher St & Greenwich St
 Broadway & W 60 St
 Broadway & E 14 St
+
 (same as start stations, only the orders are different)
 
 ```{r}
-# create function for top 10 popular start stations
+# create function for top 10 popular Citibike stations
 popStations <- function(Station) {
   dataset1<- mega_dataset%>%
   mutate(starthour = hour(starttime))%>%
   filter(start_station_name == Station)%>%
-  select(start_station_name, starthour)%>%
   group_by(start_station_name, starthour)%>%
   summarise(countstart=n())%>%
   arrange(desc(countstart))%>%
@@ -242,7 +259,6 @@ popStations <- function(Station) {
   dataset2<- mega_dataset%>%
   mutate(stophour = hour(stoptime))%>%
   filter(end_station_name == Station)%>%
-  select(end_station_name, stophour)%>%
   group_by(end_station_name, stophour)%>%
   summarise(countstop=n())%>%
   arrange(desc(countstop))%>%
@@ -254,8 +270,8 @@ poptimePershing<-dataset1%>%full_join(dataset2, by = "station_name")
 colors <- c("start time" = "darkred", "end time" = "steelblue")
 
 PerishPlot<-ggplot(poptimePershing) + 
-  geom_line(aes(x = starthour, y = countstart, color = "start time")) + 
-  geom_line(aes(x = stophour,y = countstop, color="end time")) + labs( x = "Time", y = "Frequency of rentals and returns", color = "Legend") +
+  geom_line(aes(x = starthour, y = countstart, color = "start time(Rental)")) + 
+  geom_line(aes(x = stophour,y = countstop, color="end time(Return)")) + labs( x = "Time", y = "Counts of rentals and returns", color = "Legend") +
     scale_color_manual(values = colors)+ ggtitle(paste0(Station, " ", "Station Popular Time Blocks"))
 return(PerishPlot)
 }
