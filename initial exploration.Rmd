@@ -114,6 +114,8 @@ leaflet()%>%
     baseGroups = c("OSM (default)", "Satellite", "Topographic", "2019/04", "2019/07", "2019/10", "2020/01", "2020/04", "2020/07"),
     overlayGroups = c("High Popularity Stations", "Moderate Popularity Stations", "Low Popularity Stations")
     )
+
+# reactive data in shiny
 ```
 
 
