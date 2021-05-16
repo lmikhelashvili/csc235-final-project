@@ -1,5 +1,5 @@
 ---
-title: "Citibike renters' date of birth"
+title: "Citibike Subscription Type"
 author: "Ivy Chen"
 date: "5/10/2021"
 output: html_document
