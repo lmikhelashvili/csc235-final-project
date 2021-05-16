@@ -1,0 +1,305 @@
+---
+title: "Citibike renters' date of birth"
+author: "Ivy Chen"
+date: "5/10/2021"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(rio)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(tidyr)
+library(plotly)
+library(lobstr)
+library(tidytext)
+library(scales)
+library(leaflet)
+```
+```{r}
+april_2019 <- read_csv("201904-citibike-tripdata.csv") #april 2019
+july_2019 <- read_csv("201907-citibike-tripdata.csv") #july 2019
+october_2019 <- read_csv("201910-citibike-tripdata.csv") #october 2019
+january_2020 <- read_csv("202001-citibike-tripdata.csv") #january 2020
+april_2020 <- read_csv("202004-citibike-tripdata.csv") #april 2020
+july_2020 <- read_csv("202007-citibike-tripdata.csv") #july 2020
+```
+```{r}
+mega_dataset<-full_join(april_2019, july_2019 )%>%
+  full_join(october_2019)%>%
+  full_join(january_2020)%>%
+  full_join(april_2020) %>%
+  full_join(july_2020)
+```
+
+```{r}
+mega_dataset <- mega_dataset%>%
+  rename(start_station_name = 'start station name',
+         start_station_id='start station id',
+         start_station_latitude='start station latitude',
+         start_station_longitude='start station longitude',
+         end_station_id= 'end station id',
+         end_station_latitude='end station latitude',
+         end_station_longitude='end station longitude',
+         end_station_name='end station name',
+         birth_year='birth year')
+mega_dataset <- mega_dataset%>%
+  mutate(starttime=as_datetime(starttime))%>%
+  mutate(date=floor_date(starttime,unit="day"))
+```
+```{r}
+month_station<- mega_dataset%>%
+  group_by(date,start_station_id,start_station_name,start_station_longitude,start_station_latitude)%>%
+  summarise(count=n())%>%
+  arrange(desc(count))
+station_plot <- leaflet()%>%
+  addTiles()%>%
+  addMarkers(lng = ~start_station_longitude, lat = ~ start_station_latitude, data = month_station,
+             popup = ~start_station_name)
+station_plot
+# Distribution of bike usage (counting the bike rentals)
+ggplotly(
+mega_dataset%>%
+  group_by(date)%>%
+  summarize(count = n())%>%
+  ggplot(aes(x = date, y = count))+
+  geom_line()+
+  labs( title = "Distribution of bike usage over time"))
+# Distribution of poeple's date of birth: how does it change over time? - Salwa
+
+```
+
+```{r}
+# Proportion of subscription type (user type) from mega_data -Ivy
+subscriptionType<-mega_dataset%>%
+  group_by(usertype)%>%
+  summarize(count = n())%>%
+  arrange(desc(count))
+```
+Subscriber: 8329832
+Customer: 1739065
+```{r}
+# people that rent and return the bike at the same station might be residents in that area: higher proportion of subscribers?
+
+sameStartAndEnd<-mega_dataset%>%
+  filter(start_station_name == end_station_name)
+
+subType_same<-sameStartAndEnd%>%
+  group_by(usertype)%>%
+  summarize(count = n())%>%
+  arrange(desc(count))
+```
+Subscriber:202641
+Customer: 127736
+
+```{r}
+# areas that have most subscriptions might imply that the neighborhood is wealthier or that place is business area that commuters rent and return Citibikes frequently in those busy stations
+
+sameStartAndEnd<-mega_dataset%>%
+  filter(start_station_name == end_station_name & usertype == "Subscriber" )%>%
+  group_by(start_station_name, start_station_longitude, start_station_latitude)%>%
+  summarize(count = n())%>%
+  arrange(desc(count))%>%
+  head(20)
+
+# Top 20 neighborhoods of the most subscribers 
+wealthy_plot <- leaflet()%>%
+  addTiles()%>%
+  addMarkers(lng = ~start_station_longitude, lat = ~ start_station_latitude, data = sameStartAndEnd,
+             popup = ~start_station_name)
+wealthy_plot
+```
+
+```{r}
+# compare subscriber numbers between April2019 and April2020
+subscribersApril2019<-april_2019%>%
+  filter(usertype=="Subscriber")%>%
+  group_by(usertype)%>%
+  summarise(count=n())
+
+subscribersApril2020<-april_2020%>%
+  filter(usertype=="Subscriber")%>%
+  group_by(usertype)%>%
+  summarise(count=n())
+
+
+```
+2019: 1536661
+2020: 516495
+Dramatic decrease
+
+```{r}
+typeApril2019<-april_2019%>%
+  group_by(usertype)%>%
+  summarise(count=n())
+vec<-c(201904)
+vec
+typeApril2019$month<-vec
+
+typeJuly2019<-july_2019%>%
+  group_by(usertype)%>%
+  summarise(count=n())
+vec<-c(201907)
+vec
+typeJuly2019$month<-vec
+
+typeOct2019<-october_2019%>%
+  group_by(usertype)%>%
+  summarise(count=n())
+vec<-c(201910)
+vec
+typeOct2019$month<-vec
+
+typeJan2020<-january_2020%>%
+  group_by(usertype)%>%
+  summarise(count=n())
+vec<-c(202001)
+vec
+typeJan2020$month<-vec
+
+typeApril2020<-april_2020%>%
+  group_by(usertype)%>%
+  summarise(count=n())
+vec<-c(202004)
+vec
+typeApril2020$month<-vec
+
+typeJuly2020<-july_2020%>%
+  group_by(usertype)%>%
+  summarise(count=n())
+vec<-c(202007)
+vec
+typeJuly2020$month<-vec
+
+full_sub<-typeApril2019%>%
+  full_join(typeJuly2019)%>%
+  full_join(typeOct2019)%>%
+  full_join(typeJan2020)%>%
+  full_join(typeApril2020)%>%
+  full_join(typeJuly2020)
+
+ggplot(full_sub, aes(fill=usertype, y=count, x=as.factor(month)) )+ 
+    geom_bar(position = position_dodge(), stat="identity") +      scale_x_discrete(name ="Month",
+breaks=c(201904,201907,201910, 202001, 202004, 202007),
+  labels=c("April19", "July19", "Oct19", "Jan20", "April20", "July20"))
+```
+
+
+
+
+# bar chart for most popular start and end stations
+
+```{r}
+#popular start stations
+popular_start<-mega_dataset%>%
+  group_by(start_station_name)%>%
+  summarize(count = n())%>%
+  arrange(desc(count))%>%
+  head(20)
+
+popStart_bar<-ggplot(popular_start, aes(x = reorder(start_station_name, -count), count) )+ 
+    geom_bar(stat='identity', fill = "#5290C7") + 
+    xlab("Location") + ylab("Rental Count") +
+    labs(title = "Top 20 Popular Citibike Rental Locations")+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+popStart_bar
+```
+Pershing Square North
+E 17 St & Broadway
+W 21 St & 6 Ave
+West St & Chambers St
+Broadway & E 22 St
+12 Ave & W 40 St
+8 Ave & W 31 St
+Christopher St & Greenwich St
+Broadway & W 60 St
+Broadway & E 14 St
+```{r}
+#popular end stations
+popular_end<-mega_dataset%>%
+  group_by(end_station_name)%>%
+  summarize(count = n())%>%
+  arrange(desc(count))%>%
+  head(20)
+
+
+popEnd_bar<-ggplot(popular_end, aes(x = reorder(end_station_name, -count), count) )+ 
+    geom_bar(stat='identity', fill = "#5290C7") + 
+    xlab("Location") + ylab("Return Count") +
+    labs(title = "Top 20 Popular Citibike Return Locations")+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+popEnd_bar
+```
+Pershing Square North
+E 17 St & Broadway
+W 21 St & 6 Ave
+West St & Chambers St
+Broadway & E 22 St
+12 Ave & W 40 St
+8 Ave & W 31 St
+Christopher St & Greenwich St
+Broadway & W 60 St
+Broadway & E 14 St
+
+(same as start stations, only the orders are different)
+
+```{r}
+# create function for top 10 popular Citibike stations
+popStations <- function(Station) {
+  dataset1<- mega_dataset%>%
+  mutate(starthour = hour(starttime))%>%
+  filter(start_station_name == Station)%>%
+  group_by(start_station_name, starthour)%>%
+  summarise(countstart=n())%>%
+  arrange(desc(countstart))%>%
+  rename(station_name = start_station_name)
+  
+  dataset2<- mega_dataset%>%
+  mutate(stophour = hour(stoptime))%>%
+  filter(end_station_name == Station)%>%
+  group_by(end_station_name, stophour)%>%
+  summarise(countstop=n())%>%
+  arrange(desc(countstop))%>%
+  rename(station_name = end_station_name)
+  
+  # join start and end time to create a two geomline graph
+poptimePershing<-dataset1%>%full_join(dataset2, by = "station_name")
+
+colors <- c("start time" = "darkred", "end time" = "steelblue")
+
+PerishPlot<-ggplot(poptimePershing) + 
+  geom_line(aes(x = starthour, y = countstart, color = "start time(Rental)")) + 
+  geom_line(aes(x = stophour,y = countstop, color="end time(Return)")) + labs( x = "Time", y = "Counts of rentals and returns", color = "Legend") +
+    scale_color_manual(values = colors)+ ggtitle(paste0(Station, " ", "Station Popular Time Blocks"))
+return(PerishPlot)
+}
+```
+
+```{r}
+Pershing_Square_North<-popStations("Pershing Square North")
+Pershing_Square_North
+E_17<-popStations("E 17 St & Broadway")
+E_17
+W_21<-popStations("W 21 St & 6 Ave")
+W_21
+westSt<-popStations("West St & Chambers St")
+westSt
+Broadway<-popStations("Broadway & E 22 St")
+Broadway
+twelveAve<-popStations("12 Ave & W 40 St")
+twelveAve
+eightAve<-popStations("8 Ave & W 31 St")
+eightAve
+Christopher<-popStations("Christopher St & Greenwich St")
+Christopher
+BroadwayW<-popStations("Broadway & W 60 St")
+BroadwayW
+BroadwayE<-popStations("Broadway & E 14 St")
+BroadwayE
+```
+
+
+
+
