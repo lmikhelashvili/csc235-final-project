@@ -1,0 +1,121 @@
+---
+title: "christina"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(leaflet)
+
+names(mega_dataset)
+docking_station<-mega_dataset %>% 
+  select(`end station name`, `end station latitude`, `end station longitude`)
+
+docking_station_start<- mega_dataset %>% 
+  select(`start station name`, `start station latitude`, `start station longitude`) %>% 
+  group_by( `start station longitude`,  `start station latitude`) %>% 
+  summarise(dock_count = n())
+
+docking_station_end<- mega_dataset %>% 
+  select(`end station name`, `end station latitude`, `end station longitude`) %>% 
+  group_by( `end station longitude`,  `end station latitude`) %>% 
+  summarise(dock_count = n())
+
+```
+
+```{r}
+names(mega_dataset)
+```
+
+Here is a map of every docking station in NYC 
+
+
+Next, create a map of start docking station and add shiny (time) 
+
+
+```{r}
+#end station
+docking_station_end <- docking_station_end %>% rename(lat_end = `end station latitude`, long_end = `end station longitude` )
+names(docking_station_end)
+end_dock_map<-leaflet(data = docking_station_end) %>% addTiles() %>%
+  addCircleMarkers(~long_end, ~lat_end, popup = ~as.character(dock_count), label = ~as.character(dock_count), radius = ~ (dock_count)/5000,
+    stroke = FALSE, fillOpacity = 0.5)
+
+#start station
+docking_station_start <- docking_station_start %>% rename(lat_start = `start station latitude`, long_start = `start station longitude` )
+
+start_dock_map<-leaflet(data = docking_station_start) %>% addTiles() %>%
+  addCircleMarkers(~long_start, ~lat_start, popup = ~as.character(dock_count), label = ~as.character(dock_count), radius = ~ (dock_count)/5000,
+    stroke = FALSE, fillOpacity = 0.5)
+
+library(crosstalk)
+library(leaflet.extras)
+bscols(
+filter_select("Magnitude Level", "Magnitude Level", start_dock_map, ~dock_count)
+  )
+bscols(start_dock_map)
+
+?bscols
+
+
+```
+
+
+```{r}
+library(shiny)
+
+
+
+```
+
+```{r}
+#time by month
+
+april_19_end<-april_2019 %>% 
+  group_by(`end station name`) %>% 
+  summarise(dock_count = n())
+april_19_start<-april_2019 %>% 
+  group_by(`start station name`) %>% 
+  summarise(dock_count = n())
+
+july_19_end<-july_2019 %>% 
+  group_by(`end station name`) %>% 
+  summarise(dock_count = n())
+july_19_start<-july_2019 %>% 
+  group_by(`start station name`) %>% 
+  summarise(dock_count = n())
+
+october_19_end<-october_2019 %>% 
+  group_by(`end station name`) %>% 
+  summarise(dock_count = n())
+october_19_start<-october_2019 %>% 
+  group_by(`start station name`) %>% 
+  summarise(dock_count = n())
+
+january_20_end<-january_2020 %>% 
+  group_by(`end station name`) %>% 
+  summarise(dock_count = n())
+january_20_start<-january_2020 %>% 
+  group_by(`start station name`) %>% 
+  summarise(dock_count = n())
+
+april_20_end<-april_2020 %>% 
+  group_by(`end station name`) %>% 
+  summarise(dock_count = n())
+april_20_start<-april_2020 %>% 
+  group_by(`start station name`) %>% 
+  summarise(dock_count = n())
+
+july_20_end<-july_2020 %>% 
+  group_by(`end station name`) %>% 
+  summarise(dock_count = n())
+july_20_start<-july_2020 %>% 
+  group_by(`start station name`) %>% 
+  summarise(dock_count = n())
+  
+```
+
+
+
