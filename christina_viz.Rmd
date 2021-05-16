@@ -29,17 +29,6 @@ docking_station_end<- mega_dataset %>%
 names(mega_dataset)
 ```
 
-```{r}
-docking_locations_map <- leaflet(docking_station)
-docking_locations_map <- addTiles(docking_locations_map)
-docking_locations_map <- addCircleMarkers(docking_locations_map, lng = ~`end station longitude`,
-                        lat = ~`end station latitude`)
-
-leaflet(data = docking_station) %>% addTiles() %>%
-  addMarkers(~`end station longitude`, ~`end station latitude`, popup = ~as.character(`end station name`), label = ~as.character(`end station name`))
-
-```
-
 Here is a map of every docking station in NYC 
 
 
@@ -50,18 +39,27 @@ Next, create a map of start docking station and add shiny (time)
 #end station
 docking_station_end <- docking_station_end %>% rename(lat_end = `end station latitude`, long_end = `end station longitude` )
 names(docking_station_end)
-leaflet(data = docking_station_end) %>% addTiles() %>%
+end_dock_map<-leaflet(data = docking_station_end) %>% addTiles() %>%
   addCircleMarkers(~long_end, ~lat_end, popup = ~as.character(dock_count), label = ~as.character(dock_count), radius = ~ (dock_count)/5000,
     stroke = FALSE, fillOpacity = 0.5)
 
 #start station
 docking_station_start <- docking_station_start %>% rename(lat_start = `start station latitude`, long_start = `start station longitude` )
 
-leaflet(data = docking_station_start) %>% addTiles() %>%
+start_dock_map<-leaflet(data = docking_station_start) %>% addTiles() %>%
   addCircleMarkers(~long_start, ~lat_start, popup = ~as.character(dock_count), label = ~as.character(dock_count), radius = ~ (dock_count)/5000,
     stroke = FALSE, fillOpacity = 0.5)
 
-?addTiles()
+library(crosstalk)
+library(leaflet.extras)
+bscols(
+filter_select("Magnitude Level", "Magnitude Level", start_dock_map, ~dock_count)
+  )
+bscols(start_dock_map)
+
+?bscols
+
+
 ```
 
 
