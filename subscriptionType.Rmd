@@ -227,6 +227,23 @@ Broadway & E 14 St
 
 (same as start stations, only the orders are different)
 
+# least popular stations
+```{r}
+#least popular start stations
+leastpop_start<-mega_dataset%>%
+  group_by(start_station_name)%>%
+  summarize(count = n())%>%
+  arrange(count)%>%
+  head(20)
+
+leastpopStart_bar<-ggplot(leastpop_start, aes(x = reorder(start_station_name, count), count) )+ 
+    geom_bar(stat='identity', fill = "#5290C7") + 
+    xlab("Location") + ylab("Rental Count") +
+    labs(title = "Top 20 Least Popular Citibike Rental Locations")+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+leastpopStart_bar
+```
+
 ```{r}
 # create function for top 10 popular Citibike stations
 popStations <- function(Station) {
