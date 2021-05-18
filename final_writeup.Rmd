@@ -1,28 +1,366 @@
 ---
-title: "Final Writeup"
-output: html_document
+title: "An Analysis of Citi Bike Data"
+output:
+  html_document:
+    code_folding: hide 
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+      
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+## About
+
+### About Us
+
+We are a group of 5 Computer Science / SDS students from Smith College taking CSC 235: Visual Analytics. Throughout the course, we’ve learned many new data wrangling skills such as visualizing geospatial data, creating interactive graphs, and working with big data. In addition to having the adequate skills to work with movement data, since most of us in the group also have a personal connection to NYC, we chose the CitiBike dataset for our final project. 
+
+### Dataset
+
+The CitiBike dataset consists of information on all trips taken in the boroughs of New York City. The csv files are broken up by month, with each file containing elements such as trip duration, latitude and longitude of start and end dock stations, user type, user gender, years of birth, and etc. Our data can be found here: https://www.citibikenyc.com/system-data. 
+
+We initially wanted to analyze a year worth of data, however, we soon realized that we needed to scale down since we had millions of observations. One of our goals was also to analyze pre-pandemic data, hence, we decided to analyze data in 3-month increments starting with April 2019. This allowed us to scale down the dataset while covering information in each season of the year. In the end, we created a mega dataset with data from 6 months: April 2019, July 2019, October 2019, January 2020, April 2020, and July 2020. 
+
+
+### Goal/Purpose
+
+We created visualizations based on 3 personas we created in the early prototype phases of our data exploration. Our personas were as follows:
+
+* Persona 1: NYC Local Customers 
+Sam is a recent college graduate from Nashville, TN who plans on moving to NYC for her new job. Sam wants to incorporate exercise into her daily routine, hence, when she found out about New Yorkers using Citi Bikes as a mode of transportation, she was instantly interested. Since Sam has never lived in NYC, she doesn’t know which neighborhoods have Citi Bikes. 
+
+* Persona 2: Tourists
+The Smith family is visiting New York City for the weekend from Louisiana and has a list of destinations they want to visit. They want to find the closest CitiBike station to their hotel and make their way to Central Park. The Smiths want to visit all the sites throughout Central Park but the daily pass only allows for 30-minute sessions at a time. The Smiths want to plan their trip accordingly and locate the best stations for their day at Central Park. 
+
+* Persona 3: CitiBike Marketing Team
+CitiBike is interested in analyzing the pre and post-pandemic customer preference. In order to maximize their profit, the marketing team aims to look into each CitiBike rental locations’ popularity. According to nymag.com, we know that most of the company’s profit comes from short-term customers and subscriptions come from wealthy areas. Therefore, rental locations play an important role in the company’s operation. 
+
+When we were deciding on visuals for each persona, we realized that many of them overlapped as they have very similar needs. Therefore, we created visualizations that would be applicable and insightful for all 3 personas. Our goal was to create a leaflet map that has information on the popularity of each station so our users can easily visualize the data. Next, we also conducted further analysis on different trends based on user type and age. Since our dataset contained information on pre-pandemic and pandemic travels, we inevitably saw many trends caused by the COVID-19 pandemic. Our geospatial visualization caters to users like Sam and the Smith family to locate CitiBike stations and see which ones are popular. Our graphs that quantify information on user type and station popularity over time cater to the CitiBike Marketing team, specifically in locating popular stations and trends over the pandemic that affect their company’s users. You can see our visualizations and their analysis in the ‘Visuals’ tab. 
+
+
+## Visuals 
+
+
+### All CitiBike Stations in NYC 
+
+### Popularity of docks
+
+### COVID-19 Trends 
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+library(tidyverse)
+library(rio)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(tidyr)
+library(plotly)
+library(lobstr)
+library(tidytext)
+library(scales)
+library(leaflet)
 ```
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+april_2019 <- read_csv("201904-citibike-tripdata.csv") #april 2019
+july_2019 <- read_csv("201907-citibike-tripdata.csv") #july 2019
+october_2019 <- read_csv("201910-citibike-tripdata.csv") #october 2019
+january_2020 <- read_csv("202001-citibike-tripdata.csv") #january 2020
+april_2020 <- read_csv("202004-citibike-tripdata.csv") #april 2020
+july_2020 <- read_csv("202007-citibike-tripdata.csv") #july 2020
 ```
 
-## Including Plots
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+mega_dataset<-full_join(april_2019, july_2019 )%>%
+  full_join(october_2019)%>%
+  full_join(january_2020)%>%
+  full_join(april_2020) %>%
+  full_join(july_2020)
 
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+mega_dataset_ivy <- mega_dataset%>%
+  rename(start_station_name = 'start station name',
+         start_station_id='start station id',
+         start_station_latitude='start station latitude',
+         start_station_longitude='start station longitude',
+         end_station_id= 'end station id',
+         end_station_latitude='end station latitude',
+         end_station_longitude='end station longitude',
+         end_station_name='end station name',
+         birth_year='birth year')
+mega_dataset_ivy <- mega_dataset_ivy%>%
+  mutate(starttime=as_datetime(starttime))%>%
+  mutate(date=floor_date(starttime,unit="day"))
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+month_station<- mega_dataset_ivy%>%
+  group_by(date,start_station_id,start_station_name,start_station_longitude,start_station_latitude)%>%
+  summarise(count=n())%>%
+  arrange(desc(count))
+station_plot <- leaflet()%>%
+  addTiles()%>%
+  addMarkers(lng = ~start_station_longitude, lat = ~ start_station_latitude, data = month_station,
+             popup = ~start_station_name)
+station_plot
+# Distribution of bike usage (counting the bike rentals)
+ggplotly(
+mega_dataset_ivy%>%
+  group_by(date)%>%
+  summarize(count = n())%>%
+  ggplot(aes(x = date, y = count))+
+  geom_line()+
+  labs( title = "Distribution of bike usage over time"))
+# Distribution of poeple's date of birth: how does it change over time? - Salwa
+
+```
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+# Proportion of subscription type (user type) from mega_data -Ivy
+subscriptionType<-mega_dataset_ivy%>%
+  group_by(usertype)%>%
+  summarize(count = n())%>%
+  arrange(desc(count))
+```
+
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+# people that rent and return the bike at the same station might be residents in that area: higher proportion of subscribers?
+
+sameStartAndEnd<-mega_dataset_ivy%>%
+  filter(start_station_name == end_station_name)
+
+subType_same<-sameStartAndEnd%>%
+  group_by(usertype)%>%
+  summarize(count = n())%>%
+  arrange(desc(count))
+```
+
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+# areas that have most subscriptions might imply that the neighborhood is wealthier or that place is business area that commuters rent and return Citibikes frequently in those busy stations
+
+sameStartAndEnd<-mega_dataset_ivy%>%
+  filter(start_station_name == end_station_name & usertype == "Subscriber" )%>%
+  group_by(start_station_name, start_station_longitude, start_station_latitude)%>%
+  summarize(count = n())%>%
+  arrange(desc(count))%>%
+  head(20)
+
+# Top 20 neighborhoods of the most subscribers 
+wealthy_plot <- leaflet()%>%
+  addTiles()%>%
+  addMarkers(lng = ~start_station_longitude, lat = ~ start_station_latitude, data = sameStartAndEnd,
+             popup = ~start_station_name)
+wealthy_plot
+```
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+# compare subscriber numbers between April2019 and April2020
+subscribersApril2019<-april_2019%>%
+  filter(usertype=="Subscriber")%>%
+  group_by(usertype)%>%
+  summarise(count=n())
+
+subscribersApril2020<-april_2020%>%
+  filter(usertype=="Subscriber")%>%
+  group_by(usertype)%>%
+  summarise(count=n())
+
+
+```
+
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+typeApril2019<-april_2019%>%
+  group_by(usertype)%>%
+  summarise(count=n())
+vec<-c(201904)
+vec
+typeApril2019$month<-vec
+
+typeJuly2019<-july_2019%>%
+  group_by(usertype)%>%
+  summarise(count=n())
+vec<-c(201907)
+vec
+typeJuly2019$month<-vec
+
+typeOct2019<-october_2019%>%
+  group_by(usertype)%>%
+  summarise(count=n())
+vec<-c(201910)
+vec
+typeOct2019$month<-vec
+
+typeJan2020<-january_2020%>%
+  group_by(usertype)%>%
+  summarise(count=n())
+vec<-c(202001)
+vec
+typeJan2020$month<-vec
+
+typeApril2020<-april_2020%>%
+  group_by(usertype)%>%
+  summarise(count=n())
+vec<-c(202004)
+vec
+typeApril2020$month<-vec
+
+typeJuly2020<-july_2020%>%
+  group_by(usertype)%>%
+  summarise(count=n())
+vec<-c(202007)
+vec
+typeJuly2020$month<-vec
+
+full_sub<-typeApril2019%>%
+  full_join(typeJuly2019)%>%
+  full_join(typeOct2019)%>%
+  full_join(typeJan2020)%>%
+  full_join(typeApril2020)%>%
+  full_join(typeJuly2020)
+
+```
+
+Purpose of graph: Here is a chart that shows the customer and subscriber distribution among the 6 months.
+
+```{r}
+ggplot(full_sub, aes(fill=usertype, y=count, x=as.factor(month)) )+ 
+    geom_bar(position = position_dodge(), stat="identity") +      scale_x_discrete(name ="Month",
+breaks=c(201904,201907,201910, 202001, 202004, 202007),
+  labels=c("April19", "July19", "Oct19", "Jan20", "April20", "July20"))
+```
+
+Analysis: We can see that subscriber numbers outweigh the customer’s a lot among these three months. For both subscribers and customers, in January and April 2020, there is a dramatic decrease. However, the numbers increased in July, which is summer, and we assumed that people might not feel safe taking public transportation, so they decided to rent a bike to travel and commute instead.
+
+
+Purpose of graph: The top 20 most and least popular rental stations in NYC. 
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+#popular start stations
+popular_start<-mega_dataset_ivy%>%
+  group_by(start_station_name)%>%
+  summarize(count = n())%>%
+  arrange(desc(count))%>%
+  head(20)
+
+```
+
+```{r}
+popStart_bar<-ggplot(popular_start, aes(x = reorder(start_station_name, -count), count) )+ 
+    geom_bar(stat='identity', fill = "#5290C7") + 
+    xlab("Location") + ylab("Rental Count") +
+    labs(title = "Top 20 Popular Citibike Rental Locations")+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+popStart_bar
+```
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+#popular end stations
+popular_end<-mega_dataset_ivy%>%
+  group_by(end_station_name)%>%
+  summarize(count = n())%>%
+  arrange(desc(count))%>%
+  head(20)
+```
+
+```{r}
+popEnd_bar<-ggplot(popular_end, aes(x = reorder(end_station_name, -count), count) )+ 
+    geom_bar(stat='identity', fill = "#5290C7") + 
+    xlab("Location") + ylab("Return Count") +
+    labs(title = "Top 20 Popular Citibike Return Locations")+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+popEnd_bar
+```
+
+Analysis: People will have a general idea of which stations are the most popular ones in NYC. For NYC visitors or commuters during the pandemic, they can avoid these crowded stations if possible. Additionally, CitiBike’s marketing team can suggest increasing their investment in the number of bikes at the popular stations to maximize their profits and maybe cut down the bike numbers or even close the stations that have the least number of rentals.
+
+
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+# create function for top 10 popular Citibike stations
+popStations <- function(Station) {
+  dataset1<- mega_dataset_ivy%>%
+  mutate(starthour = hour(starttime))%>%
+  filter(start_station_name == Station)%>%
+  group_by(start_station_name, starthour)%>%
+  summarise(countstart=n())%>%
+  arrange(desc(countstart))%>%
+  rename(station_name = start_station_name)
+  
+  dataset2<- mega_dataset_ivy%>%
+  mutate(stophour = hour(stoptime))%>%
+  filter(end_station_name == Station)%>%
+  group_by(end_station_name, stophour)%>%
+  summarise(countstop=n())%>%
+  arrange(desc(countstop))%>%
+  rename(station_name = end_station_name)
+  
+  # join start and end time to create a two geomline graph
+poptimePershing<-dataset1%>%full_join(dataset2, by = "station_name")
+
+colors <- c("start time" = "darkred", "end time" = "steelblue")
+
+PerishPlot<-ggplot(poptimePershing) + 
+  geom_line(aes(x = starthour, y = countstart, color = "start time(Rental)")) + 
+  geom_line(aes(x = stophour,y = countstop, color="end time(Return)")) + labs( x = "Time", y = "Counts of rentals and returns", color = "Legend") +
+    scale_color_manual(values = colors)+ ggtitle(paste0(Station, " ", "Station Popular Time Blocks"))
+return(PerishPlot)
+}
+```
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+Pershing_Square_North<-popStations("Pershing Square North")
+Pershing_Square_North
+E_17<-popStations("E 17 St & Broadway")
+E_17
+W_21<-popStations("W 21 St & 6 Ave")
+W_21
+westSt<-popStations("West St & Chambers St")
+westSt
+Broadway<-popStations("Broadway & E 22 St")
+Broadway
+twelveAve<-popStations("12 Ave & W 40 St")
+twelveAve
+eightAve<-popStations("8 Ave & W 31 St")
+eightAve
+Christopher<-popStations("Christopher St & Greenwich St")
+Christopher
+BroadwayW<-popStations("Broadway & W 60 St")
+BroadwayW
+BroadwayE<-popStations("Broadway & E 14 St")
+BroadwayE
+```
+
+
+
+## Reflection
+
+Since we successfully worked together for most of our Data Challenges, we decided to work on the final project as well. After completing the initial prototype, we divided and each took on a persona. However, after completing the initial exploration and creating visuals, we realized that many of our graphics overlapped. We concluded that since the needs of our personas overlapped, we can combine our graphics and create something that would be insightful for all personas; tourists, locals, and the CitiBike marketing team. Overall, we believe that we reached our goal of consolidating a vast amount of information into accessible visualizations and tools for our personas. The amount of time spent in prototyping before we started data wrangling was crucial to meeting this goal, and the practice and experience gained from previous projects and assignments helped us make visualizations that communicate exactly what we wanted them to.
+
+- Salwa: A common challenge that most of us faced was scaling down the data and narrowing our main focus. The biggest challenge for me was assessing which information would be more or less relevant in supporting our personas. Additionally, another challenge was figuring out how to present the data I wrangled in the most effective way possible. Meeting with my group and getting support and advice from them was very useful for me. We all worked really well together and bounced ideas off of each other which really helped when analyzing the data and coming to our conclusions. 
+
+- Ivy: Breaking down the final project into weekly small tasks and the process of generating prototypes and deciding our aimed readers really helped our final project to be designed smoothly in this remote environment. Some of our group members were New Yorkers, so they were able to provide insights and further analysis through their experiences and familiarities with certain neighborhoods when we were making inferences on the wrangled Citibike datasets. Also, integrating how the pandemic impacted CitiBike usage was a topic that our group members were interested to know more about since covid have severely altered our lives in various ways. It was interesting when we started to put the pieces together and shared what conclusions we obtained from each of our designated parts. Everyone utilized their specialties as we created an analysis that can successfully help our targeted personas.
+
+- Lika: The biggest challenge for me was to think how to visualize the varying popularity of each CitiBike station across the months represented in the dataset. The solution was to map 3 levels of popularity of the stations to colors and represent how the station’s color changes in each month. The group dynamics was very important for making progress in the project. Dividing up the work and coordinating in smaller groups was very helpful and productive.
+
+- Christina: One of our challenges in working with this dataset came early on when we had to decide on how we wanted to scale down. However, we all worked together and came up with a plan that would help us analyze a dataset that would include all different seasons while looking at COVID-19 trends. We were also able to learn that this is a common practice when some of us did the extra-credit report. We also are very compatible with each other’s working/learning styles, hence, we’ve been successful in this class. 
+
+- Carolyn: With the large amount of information provided by CitiBike, the biggest challenge for me was finding a focus for my analysis. Discussions and peer feedback were insightful for me in figuring out what to visualize and why it was important. I really enjoyed working on the user count bar chart, as it gave me more practice working with big data in Jupyter Notebook and provided some perspective on how pandemic trends affect businesses in NYC. 
+
+#### Final points, some room for improvement:
+
+Since many of us are NYC residents, we had a personal connection with the dataset and all of us enjoyed working with it. While we believe that we have created an applicable report, we see many potential advancements and room for improvement in our work. In the leaflet, we wanted to be able to divide the data by week or even by day to get more accurate trends. Additionally, we also aimed to make time another interactive element in all of our visualizations. Given the time, these additional aspects would improve how specific our analysis is and support the trends we discovered on a monthly basis. Interactivity, in particular, would help us communicate our findings to other people, who don’t have as much experience with the raw data as we have over the course of this project.  
+
+## Citations
+
+* https://s3.amazonaws.com/tripdata/index.html 
+* https://nymag.com/intelligencer/2014/03/citi-bikes-four-huge-problems.html
+* https://en.wikipedia.org/wiki/COVID-19_pandemic_in_New_York_(state)#:
+* https://benalexkeen.com/bar-charts-in-matplotlib/
+* https://datatofish.com/line-chart-python-matplotlib/
+* https://stackoverflow.com/questions/10369681/how-to-plot-bar-graphs-with-same-x-coordinates-side-by-side-dodged
+* https://plotly.com/python/line-charts/
+
+
