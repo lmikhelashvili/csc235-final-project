@@ -57,7 +57,7 @@ to do:
 ```{r}
 station_id_popularity <- mega_dataset%>%
   rename(start_lon = `start station longitude`, start_lat = `start station latitude`)%>%
-  group_by(start_month, `start station id`, start_lon, start_lat)%>%
+  group_by(start_month, `start station id`, `start station name`, start_lon, start_lat)%>%
   summarize(count = n())%>%
   arrange(desc(count))%>%
   mutate(popularity = ifelse(count < 1000, "Low", ifelse(count < 5000, "Moderate", "High")))
@@ -98,17 +98,17 @@ leaflet()%>%
   addProviderTiles(providers$OpenTopoMap, group = "Topographic") %>%
   addAwesomeMarkers(data = popularity_groups[[1]],
              group = "High Popularity Stations",
-             popup = ~paste("<b>", `start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             popup = ~paste("<b>", `start station name`, "</b><br>Station ID:",`start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
              icon = icon.high
              )%>%
   addAwesomeMarkers(data = popularity_groups[[2]],
              group ="Moderate Popularity Stations",
-             popup = ~paste("<b>", `start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             popup = ~paste("<b>", `start station name`, "</b><br>Station ID:", `start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
              icon = icon.moderate
              )%>%
   addAwesomeMarkers(data = popularity_groups[[3]],
              group = "Low Popularity Stations",
-             popup = ~paste("<b>", `start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             popup = ~paste("<b>", `start station name`,  "</b><br>Station ID:", `start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
              icon = icon.low
              )%>%
   addLayersControl(
@@ -136,17 +136,17 @@ leaflet()%>%
   addProviderTiles(providers$OpenTopoMap, group = "Topographic") %>%
   addAwesomeMarkers(data = popularity_groups_2019_04[[1]],
              group = "High Popularity Stations",
-             popup = ~paste("<b>", `start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             popup = ~paste("<b>", `start station name`, "</b><br>Station ID:", `start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
              icon = icon.high
              )%>%
   addAwesomeMarkers(data = popularity_groups_2019_04[[2]],
              group ="Moderate Popularity Stations",
-             popup = ~paste("<b>", `start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             popup = ~paste("<b>", `start station name`, "</b><br>Station ID:",  `start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
              icon = icon.moderate
              )%>%
   addAwesomeMarkers(data = popularity_groups_2019_04[[3]],
              group = "Low Popularity Stations",
-             popup = ~paste("<b>", `start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             popup = ~paste("<b>", `start station name`,  "</b><br>Station ID:",`start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
              icon = icon.low
              )%>%
   addLayersControl(
@@ -173,17 +173,17 @@ leaflet()%>%
   addProviderTiles(providers$OpenTopoMap, group = "Topographic") %>%
   addAwesomeMarkers(data = popularity_groups_2020_04[[1]],
              group = "High Popularity Stations",
-             popup = ~paste("<b>", `start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             popup = ~paste("<b>",  `start station name`, "</b><br>Station ID:", `start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
              icon = icon.high
              )%>%
   addAwesomeMarkers(data = popularity_groups_2020_04[[2]],
              group ="Moderate Popularity Stations",
-             popup = ~paste("<b>", `start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             popup = ~paste("<b>", `start station name`, "</b><br>Station ID:", `start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
              icon = icon.moderate
              )%>%
   addAwesomeMarkers(data = popularity_groups_2020_04[[3]],
              group = "Low Popularity Stations",
-             popup = ~paste("<b>", `start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             popup = ~paste("<b>",  `start station name`, "</b><br>Station ID:",`start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
              icon = icon.low
              )%>%
   addLayersControl(
@@ -210,17 +210,17 @@ leaflet()%>%
   addProviderTiles(providers$OpenTopoMap, group = "Topographic") %>%
   addAwesomeMarkers(data = popularity_groups_2020_01[[1]],
              group = "High Popularity Stations",
-             popup = ~paste("<b>", `start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             popup = ~paste("<b>",  `start station name`, "</b><br>Station ID:", `start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
              icon = icon.high
              )%>%
   addAwesomeMarkers(data = popularity_groups_2020_01[[2]],
              group ="Moderate Popularity Stations",
-             popup = ~paste("<b>", `start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             popup = ~paste("<b>",  `start station name`, "</b><br>Station ID:",`start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
              icon = icon.moderate
              )%>%
   addAwesomeMarkers(data = popularity_groups_2020_01[[3]],
              group = "Low Popularity Stations",
-             popup = ~paste("<b>", `start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             popup = ~paste("<b>",  `start station name`, "</b><br>Station ID:",`start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
              icon = icon.low
              )%>%
   addLayersControl(
@@ -248,17 +248,17 @@ leaflet()%>%
   addProviderTiles(providers$OpenTopoMap, group = "Topographic") %>%
   addAwesomeMarkers(data = popularity_groups_2019_07[[1]],
              group = "High Popularity Stations",
-             popup = ~paste("<b>", `start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             popup = ~paste("<b>",  `start station name`, "</b><br>Station ID:",`start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
              icon = icon.high
              )%>%
   addAwesomeMarkers(data = popularity_groups_2019_07[[2]],
              group ="Moderate Popularity Stations",
-             popup = ~paste("<b>", `start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             popup = ~paste("<b>",  `start station name`, "</b><br>Station ID:",`start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
              icon = icon.moderate
              )%>%
   addAwesomeMarkers(data = popularity_groups_2019_07[[3]],
              group = "Low Popularity Stations",
-             popup = ~paste("<b>", `start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             popup = ~paste("<b>", `start station name`, "</b><br>Station ID:", `start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
              icon = icon.low
              )%>%
   addLayersControl(
@@ -286,17 +286,17 @@ leaflet()%>%
   addProviderTiles(providers$OpenTopoMap, group = "Topographic") %>%
   addAwesomeMarkers(data = popularity_groups_2020_07[[1]],
              group = "High Popularity Stations",
-             popup = ~paste("<b>", `start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             popup = ~paste("<b>",  `start station name`, "</b><br>Station ID:",`start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
              icon = icon.high
              )%>%
   addAwesomeMarkers(data = popularity_groups_2020_07[[2]],
              group ="Moderate Popularity Stations",
-             popup = ~paste("<b>", `start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             popup = ~paste("<b>",  `start station name`, "</b><br>Station ID:",`start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
              icon = icon.moderate
              )%>%
   addAwesomeMarkers(data = popularity_groups_2020_07[[3]],
              group = "Low Popularity Stations",
-             popup = ~paste("<b>", `start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             popup = ~paste("<b>",  `start station name`, "</b><br>Station ID:",`start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
              icon = icon.low
              )%>%
   addLayersControl(
@@ -323,17 +323,17 @@ leaflet()%>%
   addProviderTiles(providers$OpenTopoMap, group = "Topographic") %>%
   addAwesomeMarkers(data = popularity_groups_2019_10[[1]],
              group = "High Popularity Stations",
-             popup = ~paste("<b>", `start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             popup = ~paste("<b>",  `start station name`, "</b><br>Station ID:",`start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
              icon = icon.high
              )%>%
   addAwesomeMarkers(data = popularity_groups_2019_10[[2]],
              group ="Moderate Popularity Stations",
-             popup = ~paste("<b>", `start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             popup = ~paste("<b>",  `start station name`, "</b><br>Station ID:",`start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
              icon = icon.moderate
              )%>%
   addAwesomeMarkers(data = popularity_groups_2019_10[[3]],
              group = "Low Popularity Stations",
-             popup = ~paste("<b>", `start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             popup = ~paste("<b>",  `start station name`, "</b><br>Station ID:",`start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
              icon = icon.low
              )%>%
   addLayersControl(
