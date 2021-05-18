@@ -17,6 +17,9 @@ library(lobstr)
 library(tidytext)
 library(scales)
 library(leaflet)
+library(ggpubr)
+library(ggExtra)
+library(gridExtra)
 ```
 ```{r}
 april_2019 <- read_csv("201904-citibike-tripdata.csv") #april 2019
@@ -271,9 +274,9 @@ colors <- c("start time" = "darkred", "end time" = "steelblue")
 PerishPlot<-ggplot(poptimePershing) + 
   geom_line(aes(x = starthour, y = countstart, color = "start time")) + 
   geom_line(aes(x = stophour,y = countstop, color="end time")) + labs( x = "Time", y = "Counts of rentals and returns", color = "Legend") +
-    scale_color_manual(values = colors)+ ggtitle(paste0(Station, " ", "Station Popular Time Blocks"))
-return(PerishPlot) + 
-  facet_wrap(~ align)
+    scale_color_manual(values = colors)+ ggtitle(paste0(Station, " ", "Station Popular Time Blocks")) +
+  theme(legend.position = "none") 
+return(PerishPlot) 
 }
 ```
 
@@ -299,3 +302,29 @@ BroadwayW
 BroadwayE<-popStations("Broadway & E 14 St")
 BroadwayE
 ```
+
+```{r}
+# Create plot with legend
+ggp1_legend <- popStations("Pershing Square North")+
+  theme(legend.position = "bottom")
+```
+
+```{r}
+# Create user-defined function, which extracts legends from ggplots
+extract_legend <- function(my_ggp) {
+  step1 <- ggplot_gtable(ggplot_build(my_ggp))
+  step2 <- which(sapply(step1$grobs, function(x) x$name) == "guide-box")
+  step3 <- step1$grobs[[step2]]
+  return(step3)
+}
+```
+```{r, fig.height=12, fig.width=15}
+# Apply user-defined function to extract legend
+shared_legend <- extract_legend(ggp1_legend)
+
+# Draw plots with shared legend
+grid.arrange(arrangeGrob(Pershing_Square_North, E_17, W_21,westSt, Broadway,twelveAve,eightAve, Christopher, BroadwayW, BroadwayE, ncol = 3),
+             shared_legend, nrow = 2, heights = c(3, 3.75))
+```
+
+
