@@ -1,5 +1,5 @@
 ---
-title: "Citibike renters' date of birth"
+title: "Citibike Subscription Type"
 author: "Ivy Chen"
 date: "5/10/2021"
 output: html_document
@@ -68,7 +68,6 @@ mega_dataset%>%
   geom_line()+
   labs( title = "Distribution of bike usage over time"))
 # Distribution of poeple's date of birth: how does it change over time? - Salwa
-
 ```
 
 ```{r}
@@ -82,10 +81,8 @@ Subscriber: 8329832
 Customer: 1739065
 ```{r}
 # people that rent and return the bike at the same station might be residents in that area: higher proportion of subscribers?
-
 sameStartAndEnd<-mega_dataset%>%
   filter(start_station_name == end_station_name)
-
 subType_same<-sameStartAndEnd%>%
   group_by(usertype)%>%
   summarize(count = n())%>%
@@ -96,14 +93,12 @@ Customer: 127736
 
 ```{r}
 # areas that have most subscriptions might imply that the neighborhood is wealthier or that place is business area that commuters rent and return Citibikes frequently in those busy stations
-
 sameStartAndEnd<-mega_dataset%>%
   filter(start_station_name == end_station_name & usertype == "Subscriber" )%>%
   group_by(start_station_name, start_station_longitude, start_station_latitude)%>%
   summarize(count = n())%>%
   arrange(desc(count))%>%
   head(20)
-
 # Top 20 neighborhoods of the most subscribers 
 wealthy_plot <- leaflet()%>%
   addTiles()%>%
@@ -118,13 +113,10 @@ subscribersApril2019<-april_2019%>%
   filter(usertype=="Subscriber")%>%
   group_by(usertype)%>%
   summarise(count=n())
-
 subscribersApril2020<-april_2020%>%
   filter(usertype=="Subscriber")%>%
   group_by(usertype)%>%
   summarise(count=n())
-
-
 ```
 2019: 1536661
 2020: 516495
@@ -137,49 +129,42 @@ typeApril2019<-april_2019%>%
 vec<-c(201904)
 vec
 typeApril2019$month<-vec
-
 typeJuly2019<-july_2019%>%
   group_by(usertype)%>%
   summarise(count=n())
 vec<-c(201907)
 vec
 typeJuly2019$month<-vec
-
 typeOct2019<-october_2019%>%
   group_by(usertype)%>%
   summarise(count=n())
 vec<-c(201910)
 vec
 typeOct2019$month<-vec
-
 typeJan2020<-january_2020%>%
   group_by(usertype)%>%
   summarise(count=n())
 vec<-c(202001)
 vec
 typeJan2020$month<-vec
-
 typeApril2020<-april_2020%>%
   group_by(usertype)%>%
   summarise(count=n())
 vec<-c(202004)
 vec
 typeApril2020$month<-vec
-
 typeJuly2020<-july_2020%>%
   group_by(usertype)%>%
   summarise(count=n())
 vec<-c(202007)
 vec
 typeJuly2020$month<-vec
-
 full_sub<-typeApril2019%>%
   full_join(typeJuly2019)%>%
   full_join(typeOct2019)%>%
   full_join(typeJan2020)%>%
   full_join(typeApril2020)%>%
   full_join(typeJuly2020)
-
 ggplot(full_sub, aes(fill=usertype, y=count, x=as.factor(month)) )+ 
     geom_bar(position = position_dodge(), stat="identity") +      scale_x_discrete(name ="Month",
 breaks=c(201904,201907,201910, 202001, 202004, 202007),
@@ -198,7 +183,6 @@ popular_start<-mega_dataset%>%
   summarize(count = n())%>%
   arrange(desc(count))%>%
   head(20)
-
 popStart_bar<-ggplot(popular_start, aes(x = reorder(start_station_name, -count), count) )+ 
     geom_bar(stat='identity', fill = "#5290C7") + 
     xlab("Location") + ylab("Rental Count") +
@@ -223,8 +207,6 @@ popular_end<-mega_dataset%>%
   summarize(count = n())%>%
   arrange(desc(count))%>%
   head(20)
-
-
 popEnd_bar<-ggplot(popular_end, aes(x = reorder(end_station_name, -count), count) )+ 
     geom_bar(stat='identity', fill = "#5290C7") + 
     xlab("Location") + ylab("Return Count") +
@@ -245,10 +227,28 @@ Broadway & E 14 St
 
 (same as start stations, only the orders are different)
 
+# least popular stations
+```{r}
+#least popular start stations
+leastpop_start<-mega_dataset%>%
+  group_by(start_station_name)%>%
+  summarize(count = n())%>%
+  arrange(count)%>%
+  head(20)
+
+leastpopStart_bar<-ggplot(leastpop_start, aes(x = reorder(start_station_name, count), count) )+ 
+    geom_bar(stat='identity', fill = "#5290C7") + 
+    xlab("Location") + ylab("Rental Count") +
+    labs(title = "Top 20 Least Popular Citibike Rental Locations")+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+leastpopStart_bar
+```
+
 ```{r}
 # create function for top 10 popular Citibike stations
 popStations <- function(Station) {
   dataset1<- mega_dataset%>%
+  na.omit()%>%
   mutate(starthour = hour(starttime))%>%
   filter(start_station_name == Station)%>%
   group_by(start_station_name, starthour)%>%
@@ -257,6 +257,7 @@ popStations <- function(Station) {
   rename(station_name = start_station_name)
   
   dataset2<- mega_dataset%>%
+  na.omit() %>%
   mutate(stophour = hour(stoptime))%>%
   filter(end_station_name == Station)%>%
   group_by(end_station_name, stophour)%>%
@@ -266,14 +267,13 @@ popStations <- function(Station) {
   
   # join start and end time to create a two geomline graph
 poptimePershing<-dataset1%>%full_join(dataset2, by = "station_name")
-
 colors <- c("start time" = "darkred", "end time" = "steelblue")
-
 PerishPlot<-ggplot(poptimePershing) + 
-  geom_line(aes(x = starthour, y = countstart, color = "start time(Rental)")) + 
-  geom_line(aes(x = stophour,y = countstop, color="end time(Return)")) + labs( x = "Time", y = "Counts of rentals and returns", color = "Legend") +
+  geom_line(aes(x = starthour, y = countstart, color = "start time")) + 
+  geom_line(aes(x = stophour,y = countstop, color="end time")) + labs( x = "Time", y = "Counts of rentals and returns", color = "Legend") +
     scale_color_manual(values = colors)+ ggtitle(paste0(Station, " ", "Station Popular Time Blocks"))
-return(PerishPlot)
+return(PerishPlot) + 
+  facet_wrap(~ align)
 }
 ```
 
@@ -299,7 +299,3 @@ BroadwayW
 BroadwayE<-popStations("Broadway & E 14 St")
 BroadwayE
 ```
-
-
-
-
