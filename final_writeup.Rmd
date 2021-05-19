@@ -1,5 +1,6 @@
 ---
 title: "An Analysis of Citi Bike Data"
+author: "Ivy Chen, Lika Mikhelashvili, Carolyn Nguyen, Salwa Ouachtouki, and Christina Sherpa"
 output:
   html_document:
     code_folding: hide 
@@ -38,618 +39,50 @@ CitiBike is interested in analyzing the pre and post-pandemic customer preferenc
 
 When we were deciding on visuals for each persona, we realized that many of them overlapped as they have very similar needs. Therefore, we created visualizations that would be applicable and insightful for all 3 personas. Our goal was to create a leaflet map that has information on the popularity of each station so our users can easily visualize the data. Next, we also conducted further analysis on different trends based on user type and age. Since our dataset contained information on pre-pandemic and pandemic travels, we inevitably saw many trends caused by the COVID-19 pandemic. Our geospatial visualization caters to users like Sam and the Smith family to locate CitiBike stations and see which ones are popular. Our graphs that quantify information on user type and station popularity over time cater to the CitiBike Marketing team, specifically in locating popular stations and trends over the pandemic that affect their company’s users. You can see our visualizations and their analysis in the ‘Visuals’ tab. 
 
-
 ## Visuals 
 
-### Ivy's stuff
-```{r, message=FALSE, echo=FALSE, warning=FALSE}
-library(tidyverse)
-library(rio)
-library(dplyr)
-library(ggplot2)
-library(lubridate)
-library(tidyr)
-library(plotly)
-library(lobstr)
-library(tidytext)
-library(scales)
-library(leaflet)
-library(plotly)
-library(sf)
-library(ggExtra)
-library(gridExtra)
-```
+### Interactive Map
 
-```{r, message=FALSE, echo=FALSE, warning=FALSE}
-april_2019 <- read_csv("201904-citibike-tripdata.csv") #april 2019
-july_2019 <- read_csv("201907-citibike-tripdata.csv") #july 2019
-october_2019 <- read_csv("201910-citibike-tripdata.csv") #october 2019
-january_2020 <- read_csv("202001-citibike-tripdata.csv") #january 2020
-april_2020 <- read_csv("202004-citibike-tripdata.csv") #april 2020
-july_2020 <- read_csv("202007-citibike-tripdata.csv") #july 2020
-```
+Can be found in 'leaflet_maps.html'
 
-```{r, message=FALSE, echo=FALSE, warning=FALSE}
-mega_dataset<-full_join(april_2019, july_2019 )%>%
-  full_join(october_2019)%>%
-  full_join(january_2020)%>%
-  full_join(april_2020) %>%
-  full_join(july_2020)
-
-mega_dataset <- mega_dataset%>%
-  rename(start_station_name = 'start station name',
-         start_station_id='start station id',
-         start_station_latitude='start station latitude',
-         start_station_longitude='start station longitude',
-         end_station_id= 'end station id',
-         end_station_latitude='end station latitude',
-         end_station_longitude='end station longitude',
-         end_station_name='end station name',
-         birth_year='birth year')
-mega_dataset <- mega_dataset%>%
-  mutate(starttime=as_datetime(starttime))%>%
-  mutate(date=floor_date(starttime,unit="day"))
-```
+### Customers vs. Subscribers
+![](carolyn_viz1.png)
 
 
-```{r, message=FALSE, echo=FALSE, warning=FALSE}
-month_station<- mega_dataset%>%
-  group_by(date,start_station_id,start_station_name,start_station_longitude,start_station_latitude)%>%
-  summarise(count=n())%>%
-  arrange(desc(count))
-station_plot <- leaflet()%>%
-  addTiles()%>%
-  addMarkers(lng = ~start_station_longitude, lat = ~ start_station_latitude, data = month_station,
-             popup = ~start_station_name)
-station_plot
-# Distribution of bike usage (counting the bike rentals)
-ggplotly(
-mega_dataset%>%
-  group_by(date)%>%
-  summarize(count = n())%>%
-  ggplot(aes(x = date, y = count))+
-  geom_line()+
-  labs( title = "Distribution of bike usage over time"))
-# Distribution of poeple's date of birth: how does it change over time? - Salwa
+### Most/Least Popular Stations 
 
-```
+Purpose of graph: The top 20 popular rental stations in NYC. 
 
-```{r, message=FALSE, echo=FALSE, warning=FALSE}
-# Proportion of subscription type (user type) from mega_data -Ivy
-subscriptionType<-mega_dataset%>%
-  group_by(usertype)%>%
-  summarize(count = n())%>%
-  arrange(desc(count))
-```
+![](ivy_viz1.png) 
+
+![](ivy_viz2.png) 
+
+Analysis: People will have a general idea of which stations are the most popular ones in NYC. For NYC visitors or commuters during the pandemic, they can avoid these crowded stations if possible. Additionally, CitiBike’s marketing team can suggest increasing their investment in the number of bikes at the popular stations to maximize their profits and maybe cut down the bike numbers or even close the stations that have the least number of rentals.
 
 
-```{r, message=FALSE, echo=FALSE, warning=FALSE}
-# people that rent and return the bike at the same station might be residents in that area: higher proportion of subscribers?
-
-sameStartAndEnd<-mega_dataset%>%
-  filter(start_station_name == end_station_name)
-
-subType_same<-sameStartAndEnd%>%
-  group_by(usertype)%>%
-  summarize(count = n())%>%
-  arrange(desc(count))
-```
-
-
-```{r, message=FALSE, echo=FALSE, warning=FALSE}
-# areas that have most subscriptions might imply that the neighborhood is wealthier or that place is business area that commuters rent and return Citibikes frequently in those busy stations
-
-sameStartAndEnd<-mega_dataset%>%
-  filter(start_station_name == end_station_name & usertype == "Subscriber" )%>%
-  group_by(start_station_name, start_station_longitude, start_station_latitude)%>%
-  summarize(count = n())%>%
-  arrange(desc(count))%>%
-  head(20)
-
-# Top 20 neighborhoods of the most subscribers 
-wealthy_plot <- leaflet()%>%
-  addTiles()%>%
-  addMarkers(lng = ~start_station_longitude, lat = ~ start_station_latitude, data = sameStartAndEnd,
-             popup = ~start_station_name)
-wealthy_plot
-```
-
-```{r, message=FALSE, echo=FALSE, warning=FALSE}
-# compare subscriber numbers between April2019 and April2020
-subscribersApril2019<-april_2019%>%
-  filter(usertype=="Subscriber")%>%
-  group_by(usertype)%>%
-  summarise(count=n())
-
-subscribersApril2020<-april_2020%>%
-  filter(usertype=="Subscriber")%>%
-  group_by(usertype)%>%
-  summarise(count=n())
-
-
-```
-
-
-```{r, message=FALSE, echo=FALSE, warning=FALSE}
-typeApril2019<-april_2019%>%
-  group_by(usertype)%>%
-  summarise(count=n())
-vec<-c(201904)
-vec
-typeApril2019$month<-vec
-
-typeJuly2019<-july_2019%>%
-  group_by(usertype)%>%
-  summarise(count=n())
-vec<-c(201907)
-vec
-typeJuly2019$month<-vec
-
-typeOct2019<-october_2019%>%
-  group_by(usertype)%>%
-  summarise(count=n())
-vec<-c(201910)
-vec
-typeOct2019$month<-vec
-
-typeJan2020<-january_2020%>%
-  group_by(usertype)%>%
-  summarise(count=n())
-vec<-c(202001)
-vec
-typeJan2020$month<-vec
-
-typeApril2020<-april_2020%>%
-  group_by(usertype)%>%
-  summarise(count=n())
-vec<-c(202004)
-vec
-typeApril2020$month<-vec
-
-typeJuly2020<-july_2020%>%
-  group_by(usertype)%>%
-  summarise(count=n())
-vec<-c(202007)
-vec
-typeJuly2020$month<-vec
-
-full_sub<-typeApril2019%>%
-  full_join(typeJuly2019)%>%
-  full_join(typeOct2019)%>%
-  full_join(typeJan2020)%>%
-  full_join(typeApril2020)%>%
-  full_join(typeJuly2020)
-
-```
-
-Purpose of graph: These charts explore the difference between the number of subscribers and customers using CitiBike over the span of one year. 
-
-```{r}
-ggplot(full_sub, aes(fill=usertype, y=count, x=as.factor(month)) )+ 
-    geom_bar(position = position_dodge(), stat="identity") +      scale_x_discrete(name ="Month",
-breaks=c(201904,201907,201910, 202001, 202004, 202007),
-  labels=c("April19", "July19", "Oct19", "Jan20", "April20", "July20"))
-```
-
-![](carolyn_line.png)
-
-
-Analysis: Considering that our timeframe highlights the peak of the pandemic, we suspect the dip from July 2019-April 2020 was due to a lockdown put into place from March to April 2020. This “dip” overtime is reflected in both user types. The gradual rise of users is reflective of New York’s four-phase reopening plan beginning in April 2020, which increased the number of users by July 2020. This visualization helps the CitiBike Marketing Team contextualize user patterns and adjust expectations on company profits from users due to travel restrictions during the pandemic. 
-
-Purpose of graph: The top 20 most and least popular rental stations in NYC. 
-
-# Most popular stations
-```{r}
-#popular start stations
-popular_start<-mega_dataset%>%
-  group_by(start_station_name)%>%
-  summarize(count = n())%>%
-  arrange(desc(count))%>%
-  head(20)
-popStart_bar<-ggplot(popular_start, aes(x = reorder(start_station_name, -count), count) )+ 
-    geom_bar(stat='identity', fill = "#5290C7") + 
-    xlab("Location") + ylab("Rental Count") +
-    labs(title = "Top 20 Popular Citibike Rental Locations")+
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-popStart_bar
-```
-
-# Least popular stations
-```{r}
-#least popular start stations
-leastpop_start<-mega_dataset%>%
-  group_by(start_station_name)%>%
-  summarize(count = n())%>%
-  arrange(count)%>%
-  head(20)
-leastpopStart_bar<-ggplot(leastpop_start, aes(x = reorder(start_station_name, count), count) )+ 
-    geom_bar(stat='identity', fill = "#5290C7") + 
-    xlab("Location") + ylab("Rental Count") +
-    labs(title = "Top 20 Least Popular Citibike Rental Locations")+
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-leastpopStart_bar
-```
-
-```{r}
-# create function for top 10 popular Citibike stations
-popStations <- function(Station) {
-  dataset1<- mega_dataset%>%
-  na.omit()%>%
-  mutate(starthour = hour(starttime))%>%
-  filter(start_station_name == Station)%>%
-  group_by(start_station_name, starthour)%>%
-  summarise(countstart=n())%>%
-  arrange(desc(countstart))%>%
-  rename(station_name = start_station_name)
-  
-  dataset2<- mega_dataset%>%
-  na.omit() %>%
-  mutate(stophour = hour(stoptime))%>%
-  filter(end_station_name == Station)%>%
-  group_by(end_station_name, stophour)%>%
-  summarise(countstop=n())%>%
-  arrange(desc(countstop))%>%
-  rename(station_name = end_station_name)
-  
-  # join start and end time to create a two geomline graph
-poptimePershing<-dataset1%>%full_join(dataset2, by = "station_name")
-colors <- c("start time" = "darkred", "end time" = "steelblue")
-PerishPlot<-ggplot(poptimePershing) + 
-  geom_line(aes(x = starthour, y = countstart, color = "start time")) + 
-  geom_line(aes(x = stophour,y = countstop, color="end time")) + labs( x = "Time", y = "Counts of rentals and returns", color = "Legend") +
-    scale_color_manual(values = colors)+ ggtitle(paste0(Station, " ", "Station Popular Time Blocks")) +
-  theme(legend.position = "none") 
-return(PerishPlot) 
-}
-```
-
-```{r}
-Pershing_Square_North<-popStations("Pershing Square North")
-Pershing_Square_North
-E_17<-popStations("E 17 St & Broadway")
-E_17
-W_21<-popStations("W 21 St & 6 Ave")
-W_21
-westSt<-popStations("West St & Chambers St")
-westSt
-Broadway<-popStations("Broadway & E 22 St")
-Broadway
-twelveAve<-popStations("12 Ave & W 40 St")
-twelveAve
-eightAve<-popStations("8 Ave & W 31 St")
-eightAve
-Christopher<-popStations("Christopher St & Greenwich St")
-Christopher
-BroadwayW<-popStations("Broadway & W 60 St")
-BroadwayW
-BroadwayE<-popStations("Broadway & E 14 St")
-BroadwayE
-```
-
-```{r}
-# Create plot with legend
-ggp1_legend <- popStations("Pershing Square North")+
-  theme(legend.position = "bottom")
-```
-
+### Peak Hours  
 Purpose of graph: Provide CitiBike renters the peak time of top 10 popular stations
 
-```{r}
-# Create user-defined function, which extracts legends from ggplots
-extract_legend <- function(my_ggp) {
-  step1 <- ggplot_gtable(ggplot_build(my_ggp))
-  step2 <- which(sapply(step1$grobs, function(x) x$name) == "guide-box")
-  step3 <- step1$grobs[[step2]]
-  return(step3)
-}
-```
-```{r, fig.height=12, fig.width=15}
-# Apply user-defined function to extract legend
-shared_legend <- extract_legend(ggp1_legend)
-# Draw plots with shared legend
-grid.arrange(arrangeGrob(Pershing_Square_North, E_17, W_21,westSt, Broadway,twelveAve,eightAve, Christopher, BroadwayW, BroadwayE, ncol = 3),
-             shared_legend, nrow = 2, heights = c(10, 1))
-```
+![](ivy_viz3.png) 
 
-Analysis: In order to provide our users, especially local customers and tourists, with the most helpful information, we made plots for the top 10 most popular stations with their corresponding peak rental hours. People who want to rent a bike at those stations can predict when they will most likely be able to get a bike and avoid crowds. 
+Analysis: Blue line represents end time while the red represents start time. In order to provide our users, especially local customers and tourists, with the most helpful information, we made plots for the top 10 most popular stations with their corresponding peak rental hours. People who want to rent a bike at those stations can predict when they will most likely be able to get a bike and avoid crowds. 
+
+### Customer vs. Subscribers (by birthyear)
+Purpose of Graph: The first graph displays the count of each user type (customer or subscriber) for each birth year for all 6 months collectively and the second graph shows plots for each of the 6 months.
+
+![](salwa_viz1.png) 
+![](salwa_viz2.png) 
+
+Analysis: We can see that throughout all the months there is a spike in the year 1969 mainly amongst citibike customers. This unusual spike may be due to 1969 being the default year when customers have to put in their DOB to obtain a citibike. 
+From the first graph we can see that collectively from each of the six months, 1990 is the year with the highest number of users right after 1969. And for each of the months separately, 1990 is also the highest for every single month. As we can see clearly from the graphs, the majority of these users are subscribers. This could be useful to the Citibike marketing team because with this information they can invest in placing more stations in neighborhoods that have a large amount of people who are around the age of 30 years old (younger/middle adulthood residents).
+
+Purpose of Graph: Total trip duration (minutes) for each of the six months based on the year of birth of the users
+
+![](salwa_viz3.png) 
 
 
-```{r}
-library(lubridate)
-# Add variable with only year, month, day
-mega_dataset_lika <- mega_dataset%>%
-  mutate(starttime = as_datetime(starttime))%>%
-  mutate(start_month = format(starttime, format="%Y/%m"))
-```
+Analysis: Throughout all the months, besides the year 1969, 1989-1990 were the years of birth that had the longest trip durations. This is useful to the Citibike marketing team because it shows which age group is using Citibikes for longer or shorter trips. From the previous plots we know that those born in 1990 are also the ones using Citibikes the most frequently and now we can also infer from this plot that they account for the longest trip duration as well.
 
-```{r}
-station_id_popularity <- mega_dataset_lika%>%
-  group_by(start_month, start_station_id, start_station_name, start_station_longitude, start_station_latitude)%>%
-  summarize(count = n())%>%
-  arrange(desc(count))%>%
-  mutate(popularity = ifelse(count < 1000, "Low", ifelse(count < 5000, "Moderate", "High")))
-```
-
-
-```{r}
-popularity_levels <- c("High", "Moderate", "Low")
-
-station_id_popularity <- station_id_popularity%>%
-  st_as_sf(coords = c("start_station_longitude", "start_station_latitude"))%>%
-  st_set_crs(4326)
-
-station_levels <- function(popularity_arg){
-  station_id_popularity %>%
-    filter(popularity == popularity_arg)
-}
-
-popularity_groups <- map(popularity_levels, station_levels)
-
-```
-
-# Map for all months combined
-
-```{r}
-icon.high <- makeAwesomeIcon(icon = 'bicycle', markerColor = 'red', iconColor = 'black', library = "fa")
-icon.moderate <-  makeAwesomeIcon(icon = 'bicycle', markerColor = 'orange', iconColor = 'black', library = "fa")
-icon.low <-  makeAwesomeIcon(icon = 'bicycle', markerColor = 'green', iconColor = 'black', library = "fa")
-
-pal <- colorFactor(c("red", "orange", "green"), domain = station_id_popularity$popularity)
-
-# add station name (address)
-# make a function 
-# scale the markers to appear smaller when zoomed out
-leaflet()%>%
-  addTiles(group = "OSM (default") %>%
-  addProviderTiles(providers$Esri.WorldImagery, group = "Satellite") %>%
-  addProviderTiles(providers$OpenTopoMap, group = "Topographic") %>%
-  addAwesomeMarkers(data = popularity_groups[[1]],
-             group = "High Popularity Stations",
-             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
-             icon = icon.high
-             )%>%
-  addAwesomeMarkers(data = popularity_groups[[2]],
-             group ="Moderate Popularity Stations",
-             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
-             icon = icon.moderate
-             )%>%
-  addAwesomeMarkers(data = popularity_groups[[3]],
-             group = "Low Popularity Stations",
-             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
-             icon = icon.low
-             )%>%
-  addLayersControl(
-    baseGroups = c("OSM (default)", "Satellite", "Topographic"),
-    overlayGroups = c("High Popularity Stations", "Moderate Popularity Stations", "Low Popularity Stations")
-    )
-
-# reactive data in shiny
-```
-
-# April 2019 (2019/04)
-
-```{r}
-station_levels_2019_04 <- function(popularity_arg){
-  station_id_popularity %>%
-    filter(start_month == "2019/04")%>%
-    filter(popularity == popularity_arg)
-}
-
-popularity_groups_2019_04 <- map(popularity_levels, station_levels)
-
-leaflet()%>%
-  addTiles(group = "OSM (default") %>%
-  addProviderTiles(providers$Esri.WorldImagery, group = "Satellite") %>%
-  addProviderTiles(providers$OpenTopoMap, group = "Topographic") %>%
-  addAwesomeMarkers(data = popularity_groups_2019_04[[1]],
-             group = "High Popularity Stations",
-             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
-             icon = icon.high
-             )%>%
-  addAwesomeMarkers(data = popularity_groups_2019_04[[2]],
-             group ="Moderate Popularity Stations",
-             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
-             icon = icon.moderate
-             )%>%
-  addAwesomeMarkers(data = popularity_groups_2019_04[[3]],
-             group = "Low Popularity Stations",
-             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
-             icon = icon.low
-             )%>%
-  addLayersControl(
-    baseGroups = c("OSM (default)", "Satellite", "Topographic"),
-    overlayGroups = c("High Popularity Stations", "Moderate Popularity Stations", "Low Popularity Stations")
-    )
-```
-
-
-# April 2020 (2020/04)
-
-```{r}
-station_levels_2020_04 <- function(popularity_arg){
-  station_id_popularity %>%
-    filter(start_month == "2020/04")%>%
-    filter(popularity == popularity_arg)
-}
-
-popularity_groups_2020_04 <- map(popularity_levels, station_levels)
-
-leaflet()%>%
-  addTiles(group = "OSM (default") %>%
-  addProviderTiles(providers$Esri.WorldImagery, group = "Satellite") %>%
-  addProviderTiles(providers$OpenTopoMap, group = "Topographic") %>%
-  addAwesomeMarkers(data = popularity_groups_2020_04[[1]],
-             group = "High Popularity Stations",
-             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
-             icon = icon.high
-             )%>%
-  addAwesomeMarkers(data = popularity_groups_2020_04[[2]],
-             group ="Moderate Popularity Stations",
-             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
-             icon = icon.moderate
-             )%>%
-  addAwesomeMarkers(data = popularity_groups_2020_04[[3]],
-             group = "Low Popularity Stations",
-             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
-             icon = icon.low
-             )%>%
-  addLayersControl(
-    baseGroups = c("OSM (default)", "Satellite", "Topographic"),
-    overlayGroups = c("High Popularity Stations", "Moderate Popularity Stations", "Low Popularity Stations")
-    )
-```
-
-
-# January 2020 (2020/01)
-
-```{r}
-station_levels_2020_01 <- function(popularity_arg){
-  station_id_popularity %>%
-    filter(start_month == "2020/01")%>%
-    filter(popularity == popularity_arg)
-}
-
-popularity_groups_2020_01 <- map(popularity_levels, station_levels)
-
-leaflet()%>%
-  addTiles(group = "OSM (default") %>%
-  addProviderTiles(providers$Esri.WorldImagery, group = "Satellite") %>%
-  addProviderTiles(providers$OpenTopoMap, group = "Topographic") %>%
-  addAwesomeMarkers(data = popularity_groups_2020_01[[1]],
-             group = "High Popularity Stations",
-             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
-             icon = icon.high
-             )%>%
-  addAwesomeMarkers(data = popularity_groups_2020_01[[2]],
-             group ="Moderate Popularity Stations",
-             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
-             icon = icon.moderate
-             )%>%
-  addAwesomeMarkers(data = popularity_groups_2020_01[[3]],
-             group = "Low Popularity Stations",
-             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
-             icon = icon.low
-             )%>%
-  addLayersControl(
-    baseGroups = c("OSM (default)", "Satellite", "Topographic"),
-    overlayGroups = c("High Popularity Stations", "Moderate Popularity Stations", "Low Popularity Stations")
-    )
-```
-
-
-# July 2019
-
-
-```{r}
-station_levels_2019_07 <- function(popularity_arg){
-  station_id_popularity %>%
-    filter(start_month == "2019/07")%>%
-    filter(popularity == popularity_arg)
-}
-
-popularity_groups_2019_07 <- map(popularity_levels, station_levels)
-
-leaflet()%>%
-  addTiles(group = "OSM (default") %>%
-  addProviderTiles(providers$Esri.WorldImagery, group = "Satellite") %>%
-  addProviderTiles(providers$OpenTopoMap, group = "Topographic") %>%
-  addAwesomeMarkers(data = popularity_groups_2019_07[[1]],
-             group = "High Popularity Stations",
-             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
-             icon = icon.high
-             )%>%
-  addAwesomeMarkers(data = popularity_groups_2019_07[[2]],
-             group ="Moderate Popularity Stations",
-             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
-             icon = icon.moderate
-             )%>%
-  addAwesomeMarkers(data = popularity_groups_2019_07[[3]],
-             group = "Low Popularity Stations",
-             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
-             icon = icon.low
-             )%>%
-  addLayersControl(
-    baseGroups = c("OSM (default)", "Satellite", "Topographic"),
-    overlayGroups = c("High Popularity Stations", "Moderate Popularity Stations", "Low Popularity Stations")
-    )
-```
-
-
-
-# july 2020
-
-```{r}
-station_levels_2020_07 <- function(popularity_arg){
-  station_id_popularity %>%
-    filter(start_month == "2020/07")%>%
-    filter(popularity == popularity_arg)
-}
-
-popularity_groups_2020_07 <- map(popularity_levels, station_levels)
-
-leaflet()%>%
-  addTiles(group = "OSM (default") %>%
-  addProviderTiles(providers$Esri.WorldImagery, group = "Satellite") %>%
-  addProviderTiles(providers$OpenTopoMap, group = "Topographic") %>%
-  addAwesomeMarkers(data = popularity_groups_2020_07[[1]],
-             group = "High Popularity Stations",
-             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
-             icon = icon.high
-             )%>%
-  addAwesomeMarkers(data = popularity_groups_2020_07[[2]],
-             group ="Moderate Popularity Stations",
-             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
-             icon = icon.moderate
-             )%>%
-  addAwesomeMarkers(data = popularity_groups_2020_07[[3]],
-             group = "Low Popularity Stations",
-             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
-             icon = icon.low
-             )%>%
-  addLayersControl(
-    baseGroups = c("OSM (default)", "Satellite", "Topographic"),
-    overlayGroups = c("High Popularity Stations", "Moderate Popularity Stations", "Low Popularity Stations")
-    )
-```
-
-
-# October 2019
-
-```{r}
-station_levels_2019_10 <- function(popularity_arg){
-  station_id_popularity %>%
-    filter(start_month == "2019/10")%>%
-    filter(popularity == popularity_arg)
-}
-
-popularity_groups_2019_10 <- map(popularity_levels, station_levels)
-
-leaflet()%>%
-  addTiles(group = "OSM (default") %>%
-  addProviderTiles(providers$Esri.WorldImagery, group = "Satellite") %>%
-  addProviderTiles(providers$OpenTopoMap, group = "Topographic") %>%
-  addAwesomeMarkers(data = popularity_groups_2019_10[[1]],
-             group = "High Popularity Stations",
-             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
-             icon = icon.high
-             )%>%
-  addAwesomeMarkers(data = popularity_groups_2019_10[[2]],
-             group ="Moderate Popularity Stations",
-             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
-             icon = icon.moderate
-             )%>%
-  addAwesomeMarkers(data = popularity_groups_2019_10[[3]],
-             group = "Low Popularity Stations",
-             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
-             icon = icon.low
-             )%>%
-  addLayersControl(
-    baseGroups = c("OSM (default)", "Satellite", "Topographic"),
-    overlayGroups = c("High Popularity Stations", "Moderate Popularity Stations", "Low Popularity Stations")
-    )
-```
-
-Analysis: We wanted to visualize the relative popularity of each CitiBike station in NYC. Working with the variable `start station`, we counted the number of trips starting from each station. Then we divided up the stations among 3 popularity categories (high, moderate, low). High popularity: count>5000; moderate popularity: 1000<count<5000; low popularity: count<1000. Based on these popularity groups, we created leaflet maps for each month in our dataset.
 
 
 ## Reflection
@@ -660,7 +93,7 @@ Since we successfully worked together for most of our Data Challenges, we decide
 
 - Ivy: Breaking down the final project into weekly small tasks and the process of generating prototypes and deciding our aimed readers really helped our final project to be designed smoothly in this remote environment. Some of our group members were New Yorkers, so they were able to provide insights and further analysis through their experiences and familiarities with certain neighborhoods when we were making inferences on the wrangled Citibike datasets. Also, integrating how the pandemic impacted CitiBike usage was a topic that our group members were interested to know more about since covid have severely altered our lives in various ways. It was interesting when we started to put the pieces together and shared what conclusions we obtained from each of our designated parts. Everyone utilized their specialties as we created an analysis that can successfully help our targeted personas.
 
-- Lika: The biggest challenge for me was to think how to visualize the varying popularity of each CitiBike station across the months represented in the dataset. The solution was to map 3 levels of popularity of the stations to colors and represent how the station’s color changes in each month. The group dynamics was very important for making progress in the project. Dividing up the work and coordinating in smaller groups was very helpful and productive.
+- Lika: The biggest challenge for me was to think how to visualize the varying popularity of each CitiBike station across the months represented in the dataset. The solution was to map 3 levels of popularity of the stations to colors and represent how the station’s color changes in each month. The group dynamics was very important for making progress in the project. Dividing up the work and coordinating in smaller groups was very helpful and productive. We also used code from our previous projects in SDS 192 to create our interactive leaflet map. 
 
 - Christina: One of our challenges in working with this dataset came early on when we had to decide on how we wanted to scale down. However, we all worked together and came up with a plan that would help us analyze a dataset that would include all different seasons while looking at COVID-19 trends. We were also able to learn that this is a common practice when some of us did the extra-credit report. We also are very compatible with each other’s working/learning styles, hence, we’ve been successful in this class. 
 
@@ -668,7 +101,11 @@ Since we successfully worked together for most of our Data Challenges, we decide
 
 #### Final points, some room for improvement:
 
-Since many of us are NYC residents, we had a personal connection with the dataset and all of us enjoyed working with it. While we believe that we have created an applicable report, we see many potential advancements and room for improvement in our work. In the leaflet, we wanted to be able to divide the data by week or even by day to get more accurate trends. Additionally, we also aimed to make time another interactive element in all of our visualizations. Given the time, these additional aspects would improve how specific our analysis is and support the trends we discovered on a monthly basis. Interactivity, in particular, would help us communicate our findings to other people, who don’t have as much experience with the raw data as we have over the course of this project.  
+We struggled most centralizing all of our findings into one deliverable. Though we sucessfully completed individual parts of the project, we did not anticipate the amount of difficulty that came with combining eveything into a R Markdown file. Since we are working with a large dataset, we were not able to knit our final file into a website. We decided to brainstorm other ways to approach the final deliverable that would communicate our findings in the way we planned. Our first step towards a more approachable solution was using images of the visualizations for our website. In addition to this, we decided to link separate (much smaller) files into our final file for interactive maps. After consulting with Jordan, we were finally able to produce a website we were proud of. 
+
+
+Since many of us are NYC residents, we had a personal connection with the dataset and all of us enjoyed working with it. While we believe that we have created an applicable report, we value thinking about potential advancements in our work as well. In early stages of brainstorming and planning, we aimed to focus on the data detailed scale by focusing on day-by-day or week-by-week patterns to get more accurate trends. We also wanted to include interactive elements in each of our visualizations, which also would have provided specificity in broader patterns we illustrate in our graphs. Given the time, these additional aspects would improve how specific our analysis is, while supporting the trends we discovered on a monthly basis. Interactivity, in particular, would help us communicate our findings to other people, who don’t have as much experience 
+
 
 ## Citations
 
