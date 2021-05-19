@@ -55,6 +55,9 @@ library(tidytext)
 library(scales)
 library(leaflet)
 library(plotly)
+library(sf)
+library(ggExtra)
+library(gridExtra)
 ```
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
@@ -73,7 +76,7 @@ mega_dataset<-full_join(april_2019, july_2019 )%>%
   full_join(april_2020) %>%
   full_join(july_2020)
 
-mega_dataset_ivy <- mega_dataset%>%
+mega_dataset <- mega_dataset%>%
   rename(start_station_name = 'start station name',
          start_station_id='start station id',
          start_station_latitude='start station latitude',
@@ -83,13 +86,14 @@ mega_dataset_ivy <- mega_dataset%>%
          end_station_longitude='end station longitude',
          end_station_name='end station name',
          birth_year='birth year')
-mega_dataset_ivy <- mega_dataset_ivy%>%
+mega_dataset <- mega_dataset%>%
   mutate(starttime=as_datetime(starttime))%>%
   mutate(date=floor_date(starttime,unit="day"))
 ```
 
+
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
-month_station<- mega_dataset_ivy%>%
+month_station<- mega_dataset%>%
   group_by(date,start_station_id,start_station_name,start_station_longitude,start_station_latitude)%>%
   summarise(count=n())%>%
   arrange(desc(count))
@@ -100,7 +104,7 @@ station_plot <- leaflet()%>%
 station_plot
 # Distribution of bike usage (counting the bike rentals)
 ggplotly(
-mega_dataset_ivy%>%
+mega_dataset%>%
   group_by(date)%>%
   summarize(count = n())%>%
   ggplot(aes(x = date, y = count))+
@@ -112,7 +116,7 @@ mega_dataset_ivy%>%
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
 # Proportion of subscription type (user type) from mega_data -Ivy
-subscriptionType<-mega_dataset_ivy%>%
+subscriptionType<-mega_dataset%>%
   group_by(usertype)%>%
   summarize(count = n())%>%
   arrange(desc(count))
@@ -122,7 +126,7 @@ subscriptionType<-mega_dataset_ivy%>%
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
 # people that rent and return the bike at the same station might be residents in that area: higher proportion of subscribers?
 
-sameStartAndEnd<-mega_dataset_ivy%>%
+sameStartAndEnd<-mega_dataset%>%
   filter(start_station_name == end_station_name)
 
 subType_same<-sameStartAndEnd%>%
@@ -135,7 +139,7 @@ subType_same<-sameStartAndEnd%>%
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
 # areas that have most subscriptions might imply that the neighborhood is wealthier or that place is business area that commuters rent and return Citibikes frequently in those busy stations
 
-sameStartAndEnd<-mega_dataset_ivy%>%
+sameStartAndEnd<-mega_dataset%>%
   filter(start_station_name == end_station_name & usertype == "Subscriber" )%>%
   group_by(start_station_name, start_station_longitude, start_station_latitude)%>%
   summarize(count = n())%>%
@@ -218,7 +222,7 @@ full_sub<-typeApril2019%>%
 
 ```
 
-Purpose of graph: Here is a chart that shows the customer and subscriber distribution among the 6 months.
+Purpose of graph: These charts explore the difference between the number of subscribers and customers using CitiBike over the span of one year. 
 
 ```{r}
 ggplot(full_sub, aes(fill=usertype, y=count, x=as.factor(month)) )+ 
@@ -227,35 +231,49 @@ breaks=c(201904,201907,201910, 202001, 202004, 202007),
   labels=c("April19", "July19", "Oct19", "Jan20", "April20", "July20"))
 ```
 
-Analysis: We can see that subscriber numbers outweigh the customer’s a lot among these three months. For both subscribers and customers, in January and April 2020, there is a dramatic decrease. However, the numbers increased in July, which is summer, and we assumed that people might not feel safe taking public transportation, so they decided to rent a bike to travel and commute instead.
+![](carolyn_line.png)
 
+
+Analysis: Considering that our timeframe highlights the peak of the pandemic, we suspect the dip from July 2019-April 2020 was due to a lockdown put into place from March to April 2020. This “dip” overtime is reflected in both user types. The gradual rise of users is reflective of New York’s four-phase reopening plan beginning in April 2020, which increased the number of users by July 2020. This visualization helps the CitiBike Marketing Team contextualize user patterns and adjust expectations on company profits from users due to travel restrictions during the pandemic. 
 
 Purpose of graph: The top 20 most and least popular rental stations in NYC. 
 
+# Most popular stations
+```{r}
+#popular start stations
+popular_start<-mega_dataset%>%
+  group_by(start_station_name)%>%
+  summarize(count = n())%>%
+  arrange(desc(count))%>%
+  head(20)
+popStart_bar<-ggplot(popular_start, aes(x = reorder(start_station_name, -count), count) )+ 
+    geom_bar(stat='identity', fill = "#5290C7") + 
+    xlab("Location") + ylab("Rental Count") +
+    labs(title = "Top 20 Popular Citibike Rental Locations")+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+popStart_bar
+```
 
-```{r, echo = FALSE, message=FALSE, warning=FALSE}
+# Least popular stations
+```{r}
 #least popular start stations
-leastpop_start<-mega_dataset_ivy%>%
+leastpop_start<-mega_dataset%>%
   group_by(start_station_name)%>%
   summarize(count = n())%>%
   arrange(count)%>%
   head(20)
-```
-
-```{r}
-leastpopStart_bar<-ggplot(leastpop_start, aes(x = reorder(start_station_name, count), count) )+
-    geom_bar(stat='identity', fill = "#5290C7") +
+leastpopStart_bar<-ggplot(leastpop_start, aes(x = reorder(start_station_name, count), count) )+ 
+    geom_bar(stat='identity', fill = "#5290C7") + 
     xlab("Location") + ylab("Rental Count") +
     labs(title = "Top 20 Least Popular Citibike Rental Locations")+
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 leastpopStart_bar
 ```
-Analysis: People will have a general idea of which stations are the most popular ones in NYC. For NYC visitors or commuters during the pandemic, they can avoid these crowded stations if possible. Additionally, CitiBike’s marketing team can suggest increasing their investment in the number of bikes at the popular stations to maximize their profits and maybe cut down the bike numbers or even close the stations that have the least number of rentals.
 
-```{r, echo = FALSE, message=FALSE, warning=FALSE}
+```{r}
 # create function for top 10 popular Citibike stations
 popStations <- function(Station) {
-  dataset1<- mega_dataset_ivy%>%
+  dataset1<- mega_dataset%>%
   na.omit()%>%
   mutate(starthour = hour(starttime))%>%
   filter(start_station_name == Station)%>%
@@ -263,6 +281,7 @@ popStations <- function(Station) {
   summarise(countstart=n())%>%
   arrange(desc(countstart))%>%
   rename(station_name = start_station_name)
+  
   dataset2<- mega_dataset%>%
   na.omit() %>%
   mutate(stophour = hour(stoptime))%>%
@@ -271,19 +290,20 @@ popStations <- function(Station) {
   summarise(countstop=n())%>%
   arrange(desc(countstop))%>%
   rename(station_name = end_station_name)
+  
   # join start and end time to create a two geomline graph
 poptimePershing<-dataset1%>%full_join(dataset2, by = "station_name")
 colors <- c("start time" = "darkred", "end time" = "steelblue")
-PerishPlot<-ggplot(poptimePershing) +
-  geom_line(aes(x = starthour, y = countstart, color = "start time")) +
+PerishPlot<-ggplot(poptimePershing) + 
+  geom_line(aes(x = starthour, y = countstart, color = "start time")) + 
   geom_line(aes(x = stophour,y = countstop, color="end time")) + labs( x = "Time", y = "Counts of rentals and returns", color = "Legend") +
     scale_color_manual(values = colors)+ ggtitle(paste0(Station, " ", "Station Popular Time Blocks")) +
-  theme(legend.position = "none")
-return(PerishPlot)
+  theme(legend.position = "none") 
+return(PerishPlot) 
 }
 ```
 
-```{r, echo=FALSE, warning=FALSE, message=FALSE}
+```{r}
 Pershing_Square_North<-popStations("Pershing Square North")
 Pershing_Square_North
 E_17<-popStations("E 17 St & Broadway")
@@ -312,6 +332,8 @@ ggp1_legend <- popStations("Pershing Square North")+
   theme(legend.position = "bottom")
 ```
 
+Purpose of graph: Provide CitiBike renters the peak time of top 10 popular stations
+
 ```{r}
 # Create user-defined function, which extracts legends from ggplots
 extract_legend <- function(my_ggp) {
@@ -321,447 +343,313 @@ extract_legend <- function(my_ggp) {
   return(step3)
 }
 ```
-
 ```{r, fig.height=12, fig.width=15}
 # Apply user-defined function to extract legend
 shared_legend <- extract_legend(ggp1_legend)
 # Draw plots with shared legend
 grid.arrange(arrangeGrob(Pershing_Square_North, E_17, W_21,westSt, Broadway,twelveAve,eightAve, Christopher, BroadwayW, BroadwayE, ncol = 3),
-             shared_legend, nrow = 2, heights = c(3, 3.75))
+             shared_legend, nrow = 2, heights = c(10, 1))
 ```
 
+Analysis: In order to provide our users, especially local customers and tourists, with the most helpful information, we made plots for the top 10 most popular stations with their corresponding peak rental hours. People who want to rent a bike at those stations can predict when they will most likely be able to get a bike and avoid crowds. 
 
-### Salwa's stuff 
 
-```{r, message=FALSE, echo=FALSE, warning=FALSE}
-mega_dataset_salwa <- mega_dataset%>%
-  rename(start_station_name = 'start station name',
-         start_station_id='start station id',
-         start_station_latitude='start station latitude', 
-         start_station_longitude='start station longitude', 
-         end_station_id= 'end station id',
-         end_station_latitude='end station latitude',
-         end_station_longitude='end station longitude',
-         end_station_name='end station name', 
-         birth_year='birth year')
-mega_dataset_salwa <- mega_dataset_salwa%>%
-  mutate(starttime=as_datetime(starttime))%>%
-  mutate(date=floor_date(starttime,unit="day"))
-april_2019_salwa <- april_2019%>%
-  rename(start_station_name = 'start station name',
-         start_station_id='start station id',
-         start_station_latitude='start station latitude', 
-         start_station_longitude='start station longitude', 
-         end_station_id= 'end station id',
-         end_station_latitude='end station latitude',
-         end_station_longitude='end station longitude',
-         end_station_name='end station name', 
-         birth_year='birth year')
-april_2019_salwa <- april_2019_salwa%>%
-  mutate(starttime=as_datetime(starttime))%>%
-  mutate(date=floor_date(starttime,unit="day"))
-july_2019_salwa <- july_2019%>%
-  rename(start_station_name = 'start station name',
-         start_station_id='start station id',
-         start_station_latitude='start station latitude', 
-         start_station_longitude='start station longitude', 
-         end_station_id= 'end station id',
-         end_station_latitude='end station latitude',
-         end_station_longitude='end station longitude',
-         end_station_name='end station name', 
-         birth_year='birth year')
-july_2019_salwa <- july_2019_salwa%>%
-  mutate(starttime=as_datetime(starttime))%>%
-  mutate(date=floor_date(starttime,unit="day"))
-october_2019_salwa <- october_2019%>%
-  rename(start_station_name = 'start station name',
-         start_station_id='start station id',
-         start_station_latitude='start station latitude', 
-         start_station_longitude='start station longitude', 
-         end_station_id= 'end station id',
-         end_station_latitude='end station latitude',
-         end_station_longitude='end station longitude',
-         end_station_name='end station name', 
-         birth_year='birth year')
-october_2019_salwa <- october_2019_salwa%>%
-  mutate(starttime=as_datetime(starttime))%>%
-  mutate(date=floor_date(starttime,unit="day"))
-january_2020_salwa <- january_2020%>%
-  rename(start_station_name = 'start station name',
-         start_station_id='start station id',
-         start_station_latitude='start station latitude', 
-         start_station_longitude='start station longitude', 
-         end_station_id= 'end station id',
-         end_station_latitude='end station latitude',
-         end_station_longitude='end station longitude',
-         end_station_name='end station name', 
-         birth_year='birth year')
-january_2020_salwa <- january_2020_salwa%>%
-  mutate(starttime=as_datetime(starttime))%>%
-  mutate(date=floor_date(starttime,unit="day"))
-april_2020_salwa <- april_2020%>%
-  rename(start_station_name = 'start station name',
-         start_station_id='start station id',
-         start_station_latitude='start station latitude', 
-         start_station_longitude='start station longitude', 
-         end_station_id= 'end station id',
-         end_station_latitude='end station latitude',
-         end_station_longitude='end station longitude',
-         end_station_name='end station name', 
-         birth_year='birth year')
-april_2020_salwa <- april_2020_salwa%>%
-  mutate(starttime=as_datetime(starttime))%>%
-  mutate(date=floor_date(starttime,unit="day"))
-july_2020_salwa <- july_2020%>%
-  rename(start_station_name = 'start station name',
-         start_station_id='start station id',
-         start_station_latitude='start station latitude', 
-         start_station_longitude='start station longitude', 
-         end_station_id= 'end station id',
-         end_station_latitude='end station latitude',
-         end_station_longitude='end station longitude',
-         end_station_name='end station name', 
-         birth_year='birth year')
-july_2020_salwa <- july_2020_salwa%>%
-  mutate(starttime=as_datetime(starttime))%>%
-  mutate(date=floor_date(starttime,unit="day"))
-```
-
-```{r, message=FALSE, echo=FALSE, warning=FALSE}
-month_station_salwa<- mega_dataset_salwa%>%
-  group_by(date,start_station_id,start_station_name,start_station_longitude,start_station_latitude)%>%
-  summarise(count=n())%>%
-  arrange(desc(count))
-
-library(plotly)
-ggplotly(
-mega_dataset_salwa%>%
-  group_by(date)%>%
-  summarize(count = n())%>%
-  ggplot(aes(x = date, y = count))+
-  geom_line()+
-  labs( title = "Distribution of bike usage over time"))
-# Distribution of poeple's date of birth: how does it change over time? - Salwa
-# Proportion of subscription type (user type) -Ivy
-ggplotly(
-  mega_dataset_salwa%>%
-    group_by(birth_year)%>%
-    summarize(count = n())%>%
-    ggplot(aes(x = birth_year, y = count))+
-    geom_col()+
-    labs(title = "Distribituion of Citibike Users DOB Over Time"))
-ggplotly(
-  mega_dataset_salwa%>%
-    group_by(birth_year, usertype)%>%
-    summarize(count=n())%>%
-    ggplot(aes(x = birth_year, y=count))+
-    geom_col(aes(fill=usertype))+
-    scale_x_continuous(breaks=seq(1850,2020,10))+
-    labs(title = "User DOB vs Usertype"))
-plot1<- ggplotly(
-  april_2019_salwa%>%
-    group_by(birth_year, usertype)%>%
-    summarize(count=n())%>%
-    ggplot(aes(x = birth_year, y=count))+
-    geom_col(aes(fill=usertype))+
-    scale_x_continuous(breaks=seq(1850,2020,10))+
-    theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))+
-    theme(legend.position = "none")+
-    labs(title = "User DOB vs Usertype in April 2019"))
-plot1
-plot2<- ggplotly(
-  july_2019_salwa%>%
-    group_by(birth_year, usertype)%>%
-    summarize(count=n())%>%
-    ggplot(aes(x = birth_year, y=count))+
-    geom_col(aes(fill=usertype))+
-    scale_x_continuous(breaks=seq(1850,2020,10))+
-    theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))+
-    theme(legend.position = "none")+
-    labs(title = "User DOB vs Usertype in July 2019"))
-plot2
-plot3<- ggplotly(
-  october_2019_salwa%>%
-    group_by(birth_year, usertype)%>%
-    summarize(count=n())%>%
-    ggplot(aes(x = birth_year, y=count))+
-    geom_col(aes(fill=usertype))+
-    scale_x_continuous(breaks=seq(1850,2020,10))+
-    theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))+
-    theme(legend.position = "none")+
-    labs(title = "User DOB vs Usertype in October 2019"))
-plot3
-plot4<- ggplotly(
-  january_2020_salwa%>%
-    group_by(birth_year, usertype)%>%
-    summarize(count=n())%>%
-    ggplot(aes(x = birth_year, y=count))+
-    geom_col(aes(fill=usertype))+
-    scale_x_continuous(breaks=seq(1850,2020,10))+
-    theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))+
-    theme(legend.position = "none")+
-    labs(title = "User DOB vs Usertype in January 2020"))
-plot4
-plot6<- ggplotly(
-  july_2020_salwa%>%
-    group_by(birth_year, usertype)%>%
-    summarize(count=n())%>%
-    ggplot(aes(x = birth_year, y=count))+
-    geom_col(aes(fill=usertype))+
-    scale_x_continuous(breaks=seq(1850,2020,10))+
-    theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))+
-    theme(legend.position = "bottom")+
-    labs(title = "User DOB vs Usertype in July 2020"))
-plot6
-p1<- april_2019_salwa%>%
-    group_by(birth_year, usertype)%>%
-    summarize(count=n())%>%
-    ggplot(aes(x = birth_year, y=count))+
-    geom_col(aes(fill=usertype))+
-    scale_x_continuous(breaks=seq(1850,2020,10))+
-    theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))+
-  theme(legend.position = "none")+
-    labs(title = "User DOB vs Usertype in April 2019")+
-    xlab("Birth Year")+
-  ylab("Count")
-p1
-plot1_legend<- april_2019_salwa%>%
-    group_by(birth_year, usertype)%>%
-    summarize(count=n())%>%
-    ggplot(aes(x = birth_year, y=count))+
-    geom_col(aes(fill=usertype))+
-    scale_x_continuous(breaks=seq(1850,2020,10))+
-    theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))+
-  theme(legend.position = "bottom")+
-    labs(title = "User DOB vs Usertype in April 2019") 
-plot1_legend
-p2<- july_2019_salwa%>%
-    group_by(birth_year, usertype)%>%
-    summarize(count=n())%>%
-    ggplot(aes(x = birth_year, y=count))+
-    geom_col(aes(fill=usertype))+
-    scale_x_continuous(breaks=seq(1850,2020,10))+
-    theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))+
-    theme(legend.position = "none")+
-    labs(title = "User DOB vs Usertype in July 2019") +
-  xlab("Birth Year")+
-  ylab("Count")
-p2
-p3<- october_2019_salwa%>%
-    group_by(birth_year, usertype)%>%
-    summarize(count=n())%>%
-    ggplot(aes(x = birth_year, y=count))+
-    geom_col(aes(fill=usertype))+
-    scale_x_continuous(breaks=seq(1850,2020,10))+
-    theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))+
-    theme(legend.position = "none")+
-    labs(title = "User DOB vs Usertype in October 2019")+
-    xlab("Birth Year")+
-  ylab("Count")
-p3
-p4<- january_2020_salwa%>%
-    group_by(birth_year, usertype)%>%
-    summarize(count=n())%>%
-    ggplot(aes(x = birth_year, y=count))+
-    geom_col(aes(fill=usertype))+
-    scale_x_continuous(breaks=seq(1850,2020,10))+
-    theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))+
-    theme(legend.position = "none")+
-    labs(title = "User DOB vs Usertype in January 2020")+
-    xlab("Birth Year")+
-  ylab("Count")
-p4
-p5<- april_2020_salwa%>%
-    group_by(birth_year, usertype)%>%
-    summarize(count=n())%>%
-    ggplot(aes(x = birth_year, y=count))+
-    geom_col(aes(fill=usertype))+
-    scale_x_continuous(breaks=seq(1850,2020,10))+
-    theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))+
-    theme(legend.position = "none")+
-    labs(title = "User DOB vs Usertype in April 2020")+
-    xlab("Birth Year")+
-  ylab("Count")
-p5
-p6<- july_2020_salwa%>%
-    group_by(birth_year, usertype)%>%
-    summarize(count=n())%>%
-    ggplot(aes(x = birth_year, y=count))+
-    geom_col(aes(fill=usertype))+
-    scale_x_continuous(breaks=seq(1850,2020,10))+
-    theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))+
-    theme(legend.position = "none")+
-    labs(title = "User DOB vs Usertype in July 2020")+
-    xlab("Birth Year")+
-  ylab("Count")
-p6
-extract_legend <- function(my_ggp) {
-  step1 <- ggplot_gtable(ggplot_build(my_ggp))
-  step2 <- which(sapply(step1$grobs, function(x) x$name) == "guide-box")
-  step3 <- step1$grobs[[step2]]
-  return(step3)
-}
-library(gridExtra)
-shared_legend <- extract_legend(plot1_legend)
-grid.arrange(arrangeGrob(p1,p2,p3,p4,p5,p6, ncol = 2), shared_legend, nrow=2, heights = c(10,1))
-4:05
-#subplot(plot1, plot2, plot3, plot4, plot5, plot6, nrows = 2, margin = 0.04, heights = c(0.6, 0.4))
-#par(plot1, plot2, plot3, plot4, plot5, plot6, mfrow=c(2,3))
-# p1 <- as.grob(ggarrange(plot1,ncol=2))
-# p2 <- ggarrange(plot2, ncol=2)
-# p3 <- ggarrange(plot3, ncol=2)
-# p4 <- ggarrange(plot4, ncol=2)
-# p5 <- ggarrange(plot5,ncol=2)
-# p6 <- ggarrange(plot6, ncol=2, common.legend = TRUE, legend = "bottom")
-#
-# p1 <- annotate_figure(p1, top = text_grob("Summer 2019"))
-# p2 <- annotate_figure(p2, top = text_grob("Winter 2019"))
-# p3 <- annotate_figure(p3, top = text_grob("Winter 2019"))
-# p4 <- annotate_figure(p4, top = text_grob("Winter 2019"))
-# p5 <- annotate_figure(p5, top = text_grob("Winter 2019"))
-# p6 <- annotate_figure(p6, top = text_grob("Winter 2019"))
-#
-# plot_grid(p1, p2, p3, p4, p5, p6, p7, p8, p9, ncol=3, labels=LETTERS[1:9])
-#my_plot_list <- list(p1, p2, p3, p4, p5, p6)
-# ggarrange(plotlist=my_plot_list, nrow=2, common.legend = TRUE, legend="bottom", heights = c(3,3.75))
-# annotate_figure(p, top = text_grob("Main title", face = "bold", size = 16))
-4:05
-
-duration_dob<- mega_dataset_salwa %>%
-  #mutate(starttime=as_datetime(starttime))%>%
-  #mutate(stoptime=as_datetime(stoptime))%>%
-  #mutate(align.time(hour, 5*60))+
-  group_by(birth_year,tripduration)%>%
-  summarise(count=n()>10)%>%
-  arrange(desc(count))
-# options(scipen=999)
-# paste(format(round(count / 1e6, 1), trim = TRUE), "M")
-# print.million <- function(x, quote = FALSE, ...) {
-#     count <- paste0(round(x / 1e6, 1), "M")
-#     NextMethod(x, quote = quote, ...)
-# }
-# ## assign the 'million' class to 'x'
-# class(count) <- "million"
-# addUnits <- function(n) {
-#   labels <- ifelse(n < 1000, n,  # less than thousands
-#                    ifelse(n < 1e6, paste0(round(n/1e3), 'k'),  # in thousands
-#                           ifelse(n < 1e9, paste0(round(n/1e6), 'M'),  # in millions
-#                                  ifelse(n < 1e12, paste0(round(n/1e9), 'B'), # in billions
-#                                         ifelse(n < 1e15, paste0(round(n/1e12), 'T'), # in trillions
-#                                                'too big!'
-#                                         )))))
-#   return(labels)
-# }
+```{r}
+library(lubridate)
+# Add variable with only year, month, day
+mega_dataset_lika <- mega_dataset%>%
+  mutate(starttime = as_datetime(starttime))%>%
+  mutate(start_month = format(starttime, format="%Y/%m"))
 ```
 
 ```{r}
-duration_dob<- mega_dataset_salwa %>%
-  #mutate(starttime=as_datetime(starttime))%>%
-  #mutate(stoptime=as_datetime(stoptime))%>%
-  #mutate(align.time(hour, 5*60))+
-  group_by(birth_year,tripduration)%>%
-  summarise(count=n()>10)%>%
-  arrange(desc(count))
-# options(scipen=999)
-# paste(format(round(count / 1e6, 1), trim = TRUE), "M")
-# print.million <- function(x, quote = FALSE, ...) {
-#     count <- paste0(round(x / 1e6, 1), "M")
-#     NextMethod(x, quote = quote, ...)
-# }
-# ## assign the 'million' class to 'x'
-# class(count) <- "million"
-# addUnits <- function(n) {
-#   labels <- ifelse(n < 1000, n,  # less than thousands
-#                    ifelse(n < 1e6, paste0(round(n/1e3), 'k'),  # in thousands
-#                           ifelse(n < 1e9, paste0(round(n/1e6), 'M'),  # in millions
-#                                  ifelse(n < 1e12, paste0(round(n/1e9), 'B'), # in billions
-#                                         ifelse(n < 1e15, paste0(round(n/1e12), 'T'), # in trillions
-#                                                'too big!'
-#                                         )))))
-#   return(labels)
-# }
-#Tried to make a graph of the durations for the mega_dataset but the dataset is too big
-duration1<- ggplotly(
-  april_2019_salwa%>%
-    group_by(birth_year,tripduration)%>%
-    summarise(count=n())%>%
-    arrange(desc(count))%>%
-    ggplot(aes(x = birth_year, y=tripduration))+
-    geom_col()+
-    scale_x_continuous(breaks=seq(1850,2020,10))+
-    scale_y_continuous(breaks = seq(0,200000000,10000000), labels = unit_format(unit = "M", scale = 1e-6))+
-    theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))+
-    labs(title = "User DOB vs Trip Duration in April 2019"))
-duration1<- duration1 %>% layout(xaxis= list(title= "Birth Year"), yaxis= list(title= "Trip Duration"))
-duration1
-duration2<- ggplotly(
-  july_2019_salwa%>%
-    group_by(birth_year,tripduration)%>%
-    summarise(count=n())%>%
-    arrange(desc(count))%>%
-    ggplot(aes(x = birth_year, y=tripduration))+
-    geom_col()+
-    scale_x_continuous(breaks=seq(1850,2020,10))+
-    scale_y_continuous(breaks = seq(0,300000000,10000000), labels = unit_format(unit = "M", scale = 1e-6))+
-    theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))+
-    labs(title = "User DOB vs Trip Duration in July 2019"))
-duration2<- duration2 %>% layout(xaxis= list(title= "Birth Year"), yaxis= list(title= "Trip Duration"))
-duration2
-duration3<- ggplotly(
-  october_2019_salwa%>%
-    group_by(birth_year,tripduration)%>%
-    summarise(count=n())%>%
-    arrange(desc(count))%>%
-    ggplot(aes(x = birth_year, y=tripduration))+
-    geom_col()+
-    scale_x_continuous(breaks=seq(1850,2020,10))+
-    scale_y_continuous(breaks = seq(0,200000000,10000000), labels = unit_format(unit = "M", scale = 1e-6))+
-    theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))+
-    labs(title = "User DOB vs Trip Duration in October 2019"))
-duration3<- duration3 %>% layout(xaxis= list(title= "Birth Year"), yaxis= list(title= "Trip Duration"))
-duration3
-duration4<- ggplotly(
-  january_2020_salwa%>%
-    group_by(birth_year,tripduration)%>%
-    summarise(count=n())%>%
-    arrange(desc(count))%>%
-    ggplot(aes(x = birth_year, y=tripduration))+
-    geom_col()+
-    scale_x_continuous(breaks=seq(1850,2020,10))+
-    scale_y_continuous(breaks = seq(0,200000000,10000000), labels = unit_format(unit = "M", scale = 1e-6))+
-    theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))+
-    labs(title = "User DOB vs Trip Duration in January 2020"))
-duration4<- duration4 %>% layout(xaxis= list(title= "Birth Year"), yaxis= list(title= "Trip Duration"))
-duration4
-duration5<- ggplotly(
-  april_2020_salwa%>%
-    group_by(birth_year,tripduration)%>%
-    summarise(count=n())%>%
-    arrange(desc(count))%>%
-    ggplot(aes(x = birth_year, y=tripduration))+
-    geom_col()+
-    scale_x_continuous(breaks=seq(1850,2020,10))+
-    scale_y_continuous(breaks = seq(0,200000000,10000000), labels = unit_format(unit = "M", scale = 1e-6))+
-    theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))+
-    labs(title = "User DOB vs Trip Duration in April 2020"))
-duration5<- duration5 %>% layout(xaxis= list(title= "Birth Year"), yaxis= list(title= "Trip Duration"))
-duration5
-duration6<- ggplotly(
-  july_2020_salwa%>%
-    group_by(birth_year,tripduration)%>%
-    summarise(count=n())%>%
-    arrange(desc(count))%>%
-    ggplot(aes(x = birth_year, y=tripduration))+
-    geom_col()+
-    scale_x_continuous(breaks=seq(1850,2020,10))+
-    scale_y_continuous(breaks = seq(0,200000000,10000000), labels = unit_format(unit = "M", scale = 1e-6))+
-    theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))+
-    labs(title = "User DOB vs Trip Duration in July 2020"))
-duration6<- duration6 %>% layout(xaxis= list(title= "Birth Year"), yaxis= list(title= "Trip Duration"))
-duration6
-#R crashes when running this code but it does work and it combines all the plots onto one page
-# subplot(duration1, duration2, duration3, duration4, duration5, duration6, nrows = 2, margin = 0.04, heights = c(0.6, 0.4))
+station_id_popularity <- mega_dataset_lika%>%
+  group_by(start_month, start_station_id, start_station_name, start_station_longitude, start_station_latitude)%>%
+  summarize(count = n())%>%
+  arrange(desc(count))%>%
+  mutate(popularity = ifelse(count < 1000, "Low", ifelse(count < 5000, "Moderate", "High")))
 ```
+
+
+```{r}
+popularity_levels <- c("High", "Moderate", "Low")
+
+station_id_popularity <- station_id_popularity%>%
+  st_as_sf(coords = c("start_station_longitude", "start_station_latitude"))%>%
+  st_set_crs(4326)
+
+station_levels <- function(popularity_arg){
+  station_id_popularity %>%
+    filter(popularity == popularity_arg)
+}
+
+popularity_groups <- map(popularity_levels, station_levels)
+
+```
+
+# Map for all months combined
+
+```{r}
+icon.high <- makeAwesomeIcon(icon = 'bicycle', markerColor = 'red', iconColor = 'black', library = "fa")
+icon.moderate <-  makeAwesomeIcon(icon = 'bicycle', markerColor = 'orange', iconColor = 'black', library = "fa")
+icon.low <-  makeAwesomeIcon(icon = 'bicycle', markerColor = 'green', iconColor = 'black', library = "fa")
+
+pal <- colorFactor(c("red", "orange", "green"), domain = station_id_popularity$popularity)
+
+# add station name (address)
+# make a function 
+# scale the markers to appear smaller when zoomed out
+leaflet()%>%
+  addTiles(group = "OSM (default") %>%
+  addProviderTiles(providers$Esri.WorldImagery, group = "Satellite") %>%
+  addProviderTiles(providers$OpenTopoMap, group = "Topographic") %>%
+  addAwesomeMarkers(data = popularity_groups[[1]],
+             group = "High Popularity Stations",
+             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.high
+             )%>%
+  addAwesomeMarkers(data = popularity_groups[[2]],
+             group ="Moderate Popularity Stations",
+             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.moderate
+             )%>%
+  addAwesomeMarkers(data = popularity_groups[[3]],
+             group = "Low Popularity Stations",
+             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.low
+             )%>%
+  addLayersControl(
+    baseGroups = c("OSM (default)", "Satellite", "Topographic"),
+    overlayGroups = c("High Popularity Stations", "Moderate Popularity Stations", "Low Popularity Stations")
+    )
+
+# reactive data in shiny
+```
+
+# April 2019 (2019/04)
+
+```{r}
+station_levels_2019_04 <- function(popularity_arg){
+  station_id_popularity %>%
+    filter(start_month == "2019/04")%>%
+    filter(popularity == popularity_arg)
+}
+
+popularity_groups_2019_04 <- map(popularity_levels, station_levels)
+
+leaflet()%>%
+  addTiles(group = "OSM (default") %>%
+  addProviderTiles(providers$Esri.WorldImagery, group = "Satellite") %>%
+  addProviderTiles(providers$OpenTopoMap, group = "Topographic") %>%
+  addAwesomeMarkers(data = popularity_groups_2019_04[[1]],
+             group = "High Popularity Stations",
+             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.high
+             )%>%
+  addAwesomeMarkers(data = popularity_groups_2019_04[[2]],
+             group ="Moderate Popularity Stations",
+             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.moderate
+             )%>%
+  addAwesomeMarkers(data = popularity_groups_2019_04[[3]],
+             group = "Low Popularity Stations",
+             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.low
+             )%>%
+  addLayersControl(
+    baseGroups = c("OSM (default)", "Satellite", "Topographic"),
+    overlayGroups = c("High Popularity Stations", "Moderate Popularity Stations", "Low Popularity Stations")
+    )
+```
+
+
+# April 2020 (2020/04)
+
+```{r}
+station_levels_2020_04 <- function(popularity_arg){
+  station_id_popularity %>%
+    filter(start_month == "2020/04")%>%
+    filter(popularity == popularity_arg)
+}
+
+popularity_groups_2020_04 <- map(popularity_levels, station_levels)
+
+leaflet()%>%
+  addTiles(group = "OSM (default") %>%
+  addProviderTiles(providers$Esri.WorldImagery, group = "Satellite") %>%
+  addProviderTiles(providers$OpenTopoMap, group = "Topographic") %>%
+  addAwesomeMarkers(data = popularity_groups_2020_04[[1]],
+             group = "High Popularity Stations",
+             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.high
+             )%>%
+  addAwesomeMarkers(data = popularity_groups_2020_04[[2]],
+             group ="Moderate Popularity Stations",
+             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.moderate
+             )%>%
+  addAwesomeMarkers(data = popularity_groups_2020_04[[3]],
+             group = "Low Popularity Stations",
+             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.low
+             )%>%
+  addLayersControl(
+    baseGroups = c("OSM (default)", "Satellite", "Topographic"),
+    overlayGroups = c("High Popularity Stations", "Moderate Popularity Stations", "Low Popularity Stations")
+    )
+```
+
+
+# January 2020 (2020/01)
+
+```{r}
+station_levels_2020_01 <- function(popularity_arg){
+  station_id_popularity %>%
+    filter(start_month == "2020/01")%>%
+    filter(popularity == popularity_arg)
+}
+
+popularity_groups_2020_01 <- map(popularity_levels, station_levels)
+
+leaflet()%>%
+  addTiles(group = "OSM (default") %>%
+  addProviderTiles(providers$Esri.WorldImagery, group = "Satellite") %>%
+  addProviderTiles(providers$OpenTopoMap, group = "Topographic") %>%
+  addAwesomeMarkers(data = popularity_groups_2020_01[[1]],
+             group = "High Popularity Stations",
+             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.high
+             )%>%
+  addAwesomeMarkers(data = popularity_groups_2020_01[[2]],
+             group ="Moderate Popularity Stations",
+             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.moderate
+             )%>%
+  addAwesomeMarkers(data = popularity_groups_2020_01[[3]],
+             group = "Low Popularity Stations",
+             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.low
+             )%>%
+  addLayersControl(
+    baseGroups = c("OSM (default)", "Satellite", "Topographic"),
+    overlayGroups = c("High Popularity Stations", "Moderate Popularity Stations", "Low Popularity Stations")
+    )
+```
+
+
+# July 2019
+
+
+```{r}
+station_levels_2019_07 <- function(popularity_arg){
+  station_id_popularity %>%
+    filter(start_month == "2019/07")%>%
+    filter(popularity == popularity_arg)
+}
+
+popularity_groups_2019_07 <- map(popularity_levels, station_levels)
+
+leaflet()%>%
+  addTiles(group = "OSM (default") %>%
+  addProviderTiles(providers$Esri.WorldImagery, group = "Satellite") %>%
+  addProviderTiles(providers$OpenTopoMap, group = "Topographic") %>%
+  addAwesomeMarkers(data = popularity_groups_2019_07[[1]],
+             group = "High Popularity Stations",
+             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.high
+             )%>%
+  addAwesomeMarkers(data = popularity_groups_2019_07[[2]],
+             group ="Moderate Popularity Stations",
+             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.moderate
+             )%>%
+  addAwesomeMarkers(data = popularity_groups_2019_07[[3]],
+             group = "Low Popularity Stations",
+             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.low
+             )%>%
+  addLayersControl(
+    baseGroups = c("OSM (default)", "Satellite", "Topographic"),
+    overlayGroups = c("High Popularity Stations", "Moderate Popularity Stations", "Low Popularity Stations")
+    )
+```
+
+
+
+# july 2020
+
+```{r}
+station_levels_2020_07 <- function(popularity_arg){
+  station_id_popularity %>%
+    filter(start_month == "2020/07")%>%
+    filter(popularity == popularity_arg)
+}
+
+popularity_groups_2020_07 <- map(popularity_levels, station_levels)
+
+leaflet()%>%
+  addTiles(group = "OSM (default") %>%
+  addProviderTiles(providers$Esri.WorldImagery, group = "Satellite") %>%
+  addProviderTiles(providers$OpenTopoMap, group = "Topographic") %>%
+  addAwesomeMarkers(data = popularity_groups_2020_07[[1]],
+             group = "High Popularity Stations",
+             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.high
+             )%>%
+  addAwesomeMarkers(data = popularity_groups_2020_07[[2]],
+             group ="Moderate Popularity Stations",
+             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.moderate
+             )%>%
+  addAwesomeMarkers(data = popularity_groups_2020_07[[3]],
+             group = "Low Popularity Stations",
+             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.low
+             )%>%
+  addLayersControl(
+    baseGroups = c("OSM (default)", "Satellite", "Topographic"),
+    overlayGroups = c("High Popularity Stations", "Moderate Popularity Stations", "Low Popularity Stations")
+    )
+```
+
+
+# October 2019
+
+```{r}
+station_levels_2019_10 <- function(popularity_arg){
+  station_id_popularity %>%
+    filter(start_month == "2019/10")%>%
+    filter(popularity == popularity_arg)
+}
+
+popularity_groups_2019_10 <- map(popularity_levels, station_levels)
+
+leaflet()%>%
+  addTiles(group = "OSM (default") %>%
+  addProviderTiles(providers$Esri.WorldImagery, group = "Satellite") %>%
+  addProviderTiles(providers$OpenTopoMap, group = "Topographic") %>%
+  addAwesomeMarkers(data = popularity_groups_2019_10[[1]],
+             group = "High Popularity Stations",
+             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.high
+             )%>%
+  addAwesomeMarkers(data = popularity_groups_2019_10[[2]],
+             group ="Moderate Popularity Stations",
+             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.moderate
+             )%>%
+  addAwesomeMarkers(data = popularity_groups_2019_10[[3]],
+             group = "Low Popularity Stations",
+             popup = ~paste("<b>", start_station_name, "</b><br>Station ID:", start_station_id, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.low
+             )%>%
+  addLayersControl(
+    baseGroups = c("OSM (default)", "Satellite", "Topographic"),
+    overlayGroups = c("High Popularity Stations", "Moderate Popularity Stations", "Low Popularity Stations")
+    )
+```
+
+Analysis: We wanted to visualize the relative popularity of each CitiBike station in NYC. Working with the variable `start station`, we counted the number of trips starting from each station. Then we divided up the stations among 3 popularity categories (high, moderate, low). High popularity: count>5000; moderate popularity: 1000<count<5000; low popularity: count<1000. Based on these popularity groups, we created leaflet maps for each month in our dataset.
 
 
 ## Reflection
