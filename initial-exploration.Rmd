@@ -1,0 +1,352 @@
+---
+title: "Station Popularity: All Months"
+output:
+  html_document:
+    code_folding: hide 
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+      
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+library(tidyverse)
+library(leaflet)
+library(sf)
+library(ggthemes)
+library(RColorBrewer)
+```
+
+
+
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+april_2019 <- read_csv("201904-citibike-tripdata.csv") #april 2019
+july_2019 <- read_csv("201907-citibike-tripdata.csv") #july 2019
+october_2019 <- read_csv("201910-citibike-tripdata.csv") #october 2019
+january_2020 <- read_csv("202001-citibike-tripdata.csv") #january 2020
+april_2020 <- read_csv("202004-citibike-tripdata.csv") #april 2020
+july_2020 <- read_csv("202007-citibike-tripdata.csv") #july 2020
+```
+
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+mega_dataset<-full_join(april_2019, july_2019 )%>%
+  full_join(october_2019)%>%
+  full_join(january_2020)%>%
+  full_join(april_2020) %>% 
+  full_join(july_2020)
+  
+```
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+library(lubridate)
+# Add variable with only year, month, day
+mega_dataset <- mega_dataset%>%
+  mutate(starttime = as_datetime(starttime))%>%
+ # mutate(start_time_block = floor_date(starttime, unit = "month"))%>%
+  mutate(start_month = format(starttime, format="%Y/%m"))
+```
+
+to do: 
+
+- explore the average duration of rides: how does it change over time?
+
+- create a leaflet map
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+station_id_popularity <- mega_dataset%>%
+  rename(start_lon = `start station longitude`, start_lat = `start station latitude`)%>%
+  group_by(start_month, `start station id`, `start station name`, start_lon, start_lat)%>%
+  summarize(count = n())%>%
+  arrange(desc(count))%>%
+  mutate(popularity = ifelse(count < 1000, "Low", ifelse(count < 5000, "Moderate", "High")))
+```
+
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+popularity_levels <- c("High", "Moderate", "Low")
+
+station_id_popularity <- station_id_popularity%>%
+  st_as_sf(coords = c("start_lon", "start_lat"))%>%
+  st_set_crs(4326)
+
+station_levels <- function(popularity_arg){
+  station_id_popularity %>%
+    filter(popularity == popularity_arg)
+}
+
+popularity_groups <- map(popularity_levels, station_levels)
+
+```
+
+# Map for all months combined
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+icon.high <- makeAwesomeIcon(icon = 'bicycle', markerColor = 'red', iconColor = 'black', library = "fa")
+icon.moderate <-  makeAwesomeIcon(icon = 'bicycle', markerColor = 'orange', iconColor = 'black', library = "fa")
+icon.low <-  makeAwesomeIcon(icon = 'bicycle', markerColor = 'green', iconColor = 'black', library = "fa")
+
+pal <- colorFactor(c("red", "orange", "green"), domain = station_id_popularity$popularity)
+
+# add station name (address)
+# make a function 
+# scale the markers to appear smaller when zoomed out
+leaflet()%>%
+  addTiles(group = "OSM (default") %>%
+  addProviderTiles(providers$Esri.WorldImagery, group = "Satellite") %>%
+  addProviderTiles(providers$OpenTopoMap, group = "Topographic") %>%
+  addAwesomeMarkers(data = popularity_groups[[1]],
+             group = "High Popularity Stations",
+             popup = ~paste("<b>", `start station name`, "</b><br>Station ID:",`start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.high
+             )%>%
+  addAwesomeMarkers(data = popularity_groups[[2]],
+             group ="Moderate Popularity Stations",
+             popup = ~paste("<b>", `start station name`, "</b><br>Station ID:", `start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.moderate
+             )%>%
+  addAwesomeMarkers(data = popularity_groups[[3]],
+             group = "Low Popularity Stations",
+             popup = ~paste("<b>", `start station name`,  "</b><br>Station ID:", `start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.low
+             )%>%
+  addLayersControl(
+    baseGroups = c("OSM (default)", "Satellite", "Topographic"),
+    overlayGroups = c("High Popularity Stations", "Moderate Popularity Stations", "Low Popularity Stations")
+    )
+```
+
+# April 2019 (2019/04)
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+station_levels_2019_04 <- function(popularity_arg){
+  station_id_popularity %>%
+    filter(start_month == "2019/04")%>%
+    filter(popularity == popularity_arg)
+}
+
+popularity_groups_2019_04 <- map(popularity_levels, station_levels)
+
+leaflet()%>%
+  addTiles(group = "OSM (default") %>%
+  addProviderTiles(providers$Esri.WorldImagery, group = "Satellite") %>%
+  addProviderTiles(providers$OpenTopoMap, group = "Topographic") %>%
+  addAwesomeMarkers(data = popularity_groups_2019_04[[1]],
+             group = "High Popularity Stations",
+             popup = ~paste("<b>", `start station name`, "</b><br>Station ID:", `start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.high
+             )%>%
+  addAwesomeMarkers(data = popularity_groups_2019_04[[2]],
+             group ="Moderate Popularity Stations",
+             popup = ~paste("<b>", `start station name`, "</b><br>Station ID:",  `start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.moderate
+             )%>%
+  addAwesomeMarkers(data = popularity_groups_2019_04[[3]],
+             group = "Low Popularity Stations",
+             popup = ~paste("<b>", `start station name`,  "</b><br>Station ID:",`start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.low
+             )%>%
+  addLayersControl(
+    baseGroups = c("OSM (default)", "Satellite", "Topographic"),
+    overlayGroups = c("High Popularity Stations", "Moderate Popularity Stations", "Low Popularity Stations")
+    )
+```
+
+
+# April 2020 (2020/04)
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+station_levels_2020_04 <- function(popularity_arg){
+  station_id_popularity %>%
+    filter(start_month == "2020/04")%>%
+    filter(popularity == popularity_arg)
+}
+
+popularity_groups_2020_04 <- map(popularity_levels, station_levels)
+
+leaflet()%>%
+  addTiles(group = "OSM (default") %>%
+  addProviderTiles(providers$Esri.WorldImagery, group = "Satellite") %>%
+  addProviderTiles(providers$OpenTopoMap, group = "Topographic") %>%
+  addAwesomeMarkers(data = popularity_groups_2020_04[[1]],
+             group = "High Popularity Stations",
+             popup = ~paste("<b>",  `start station name`, "</b><br>Station ID:", `start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.high
+             )%>%
+  addAwesomeMarkers(data = popularity_groups_2020_04[[2]],
+             group ="Moderate Popularity Stations",
+             popup = ~paste("<b>", `start station name`, "</b><br>Station ID:", `start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.moderate
+             )%>%
+  addAwesomeMarkers(data = popularity_groups_2020_04[[3]],
+             group = "Low Popularity Stations",
+             popup = ~paste("<b>",  `start station name`, "</b><br>Station ID:",`start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.low
+             )%>%
+  addLayersControl(
+    baseGroups = c("OSM (default)", "Satellite", "Topographic"),
+    overlayGroups = c("High Popularity Stations", "Moderate Popularity Stations", "Low Popularity Stations")
+    )
+```
+
+
+# January 2020 (2020/01)
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+station_levels_2020_01 <- function(popularity_arg){
+  station_id_popularity %>%
+    filter(start_month == "2020/01")%>%
+    filter(popularity == popularity_arg)
+}
+
+popularity_groups_2020_01 <- map(popularity_levels, station_levels)
+
+leaflet()%>%
+  addTiles(group = "OSM (default") %>%
+  addProviderTiles(providers$Esri.WorldImagery, group = "Satellite") %>%
+  addProviderTiles(providers$OpenTopoMap, group = "Topographic") %>%
+  addAwesomeMarkers(data = popularity_groups_2020_01[[1]],
+             group = "High Popularity Stations",
+             popup = ~paste("<b>",  `start station name`, "</b><br>Station ID:", `start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.high
+             )%>%
+  addAwesomeMarkers(data = popularity_groups_2020_01[[2]],
+             group ="Moderate Popularity Stations",
+             popup = ~paste("<b>",  `start station name`, "</b><br>Station ID:",`start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.moderate
+             )%>%
+  addAwesomeMarkers(data = popularity_groups_2020_01[[3]],
+             group = "Low Popularity Stations",
+             popup = ~paste("<b>",  `start station name`, "</b><br>Station ID:",`start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.low
+             )%>%
+  addLayersControl(
+    baseGroups = c("OSM (default)", "Satellite", "Topographic"),
+    overlayGroups = c("High Popularity Stations", "Moderate Popularity Stations", "Low Popularity Stations")
+    )
+```
+
+
+# July 2019
+
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+station_levels_2019_07 <- function(popularity_arg){
+  station_id_popularity %>%
+    filter(start_month == "2019/07")%>%
+    filter(popularity == popularity_arg)
+}
+
+popularity_groups_2019_07 <- map(popularity_levels, station_levels)
+
+leaflet()%>%
+  addTiles(group = "OSM (default") %>%
+  addProviderTiles(providers$Esri.WorldImagery, group = "Satellite") %>%
+  addProviderTiles(providers$OpenTopoMap, group = "Topographic") %>%
+  addAwesomeMarkers(data = popularity_groups_2019_07[[1]],
+             group = "High Popularity Stations",
+             popup = ~paste("<b>",  `start station name`, "</b><br>Station ID:",`start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.high
+             )%>%
+  addAwesomeMarkers(data = popularity_groups_2019_07[[2]],
+             group ="Moderate Popularity Stations",
+             popup = ~paste("<b>",  `start station name`, "</b><br>Station ID:",`start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.moderate
+             )%>%
+  addAwesomeMarkers(data = popularity_groups_2019_07[[3]],
+             group = "Low Popularity Stations",
+             popup = ~paste("<b>", `start station name`, "</b><br>Station ID:", `start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.low
+             )%>%
+  addLayersControl(
+    baseGroups = c("OSM (default)", "Satellite", "Topographic"),
+    overlayGroups = c("High Popularity Stations", "Moderate Popularity Stations", "Low Popularity Stations")
+    )
+```
+
+
+
+# July 2020
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+station_levels_2020_07 <- function(popularity_arg){
+  station_id_popularity %>%
+    filter(start_month == "2020/07")%>%
+    filter(popularity == popularity_arg)
+}
+
+popularity_groups_2020_07 <- map(popularity_levels, station_levels)
+
+leaflet()%>%
+  addTiles(group = "OSM (default") %>%
+  addProviderTiles(providers$Esri.WorldImagery, group = "Satellite") %>%
+  addProviderTiles(providers$OpenTopoMap, group = "Topographic") %>%
+  addAwesomeMarkers(data = popularity_groups_2020_07[[1]],
+             group = "High Popularity Stations",
+             popup = ~paste("<b>",  `start station name`, "</b><br>Station ID:",`start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.high
+             )%>%
+  addAwesomeMarkers(data = popularity_groups_2020_07[[2]],
+             group ="Moderate Popularity Stations",
+             popup = ~paste("<b>",  `start station name`, "</b><br>Station ID:",`start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.moderate
+             )%>%
+  addAwesomeMarkers(data = popularity_groups_2020_07[[3]],
+             group = "Low Popularity Stations",
+             popup = ~paste("<b>",  `start station name`, "</b><br>Station ID:",`start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.low
+             )%>%
+  addLayersControl(
+    baseGroups = c("OSM (default)", "Satellite", "Topographic"),
+    overlayGroups = c("High Popularity Stations", "Moderate Popularity Stations", "Low Popularity Stations")
+    )
+```
+
+
+# October 2019
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+station_levels_2019_10 <- function(popularity_arg){
+  station_id_popularity %>%
+    filter(start_month == "2019/10")%>%
+    filter(popularity == popularity_arg)
+}
+
+popularity_groups_2019_10 <- map(popularity_levels, station_levels)
+
+leaflet()%>%
+  addTiles(group = "OSM (default") %>%
+  addProviderTiles(providers$Esri.WorldImagery, group = "Satellite") %>%
+  addProviderTiles(providers$OpenTopoMap, group = "Topographic") %>%
+  addAwesomeMarkers(data = popularity_groups_2019_10[[1]],
+             group = "High Popularity Stations",
+             popup = ~paste("<b>",  `start station name`, "</b><br>Station ID:",`start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.high
+             )%>%
+  addAwesomeMarkers(data = popularity_groups_2019_10[[2]],
+             group ="Moderate Popularity Stations",
+             popup = ~paste("<b>",  `start station name`, "</b><br>Station ID:",`start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.moderate
+             )%>%
+  addAwesomeMarkers(data = popularity_groups_2019_10[[3]],
+             group = "Low Popularity Stations",
+             popup = ~paste("<b>",  `start station name`, "</b><br>Station ID:",`start station id`, "</b><br>", popularity, "popularity", "</b><br>", "count", count),
+             icon = icon.low
+             )%>%
+  addLayersControl(
+    baseGroups = c("OSM (default)", "Satellite", "Topographic"),
+    overlayGroups = c("High Popularity Stations", "Moderate Popularity Stations", "Low Popularity Stations")
+    )
+```
+
+
+
+
+
+
