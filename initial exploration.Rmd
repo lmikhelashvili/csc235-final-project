@@ -1,15 +1,20 @@
 ---
-title: "initial exploration"
-output: html_document
-editor_options: 
-  chunk_output_type: console
+title: "Station Popularity: All Months"
+output:
+  html_document:
+    code_folding: hide 
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+      
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
 library(tidyverse)
 library(leaflet)
 library(sf)
@@ -20,7 +25,7 @@ library(RColorBrewer)
 
 
 
-```{r}
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
 april_2019 <- read_csv("201904-citibike-tripdata.csv") #april 2019
 july_2019 <- read_csv("201907-citibike-tripdata.csv") #july 2019
 october_2019 <- read_csv("201910-citibike-tripdata.csv") #october 2019
@@ -30,7 +35,7 @@ july_2020 <- read_csv("202007-citibike-tripdata.csv") #july 2020
 ```
 
 
-```{r}
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
 mega_dataset<-full_join(april_2019, july_2019 )%>%
   full_join(october_2019)%>%
   full_join(january_2020)%>%
@@ -39,7 +44,7 @@ mega_dataset<-full_join(april_2019, july_2019 )%>%
   
 ```
 
-```{r}
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
 library(lubridate)
 # Add variable with only year, month, day
 mega_dataset <- mega_dataset%>%
@@ -48,13 +53,8 @@ mega_dataset <- mega_dataset%>%
   mutate(start_month = format(starttime, format="%Y/%m"))
 ```
 
-to do: 
 
-- explore the average duration of rides: how does it change over time?
-
-- create a leaflet map
-
-```{r}
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
 station_id_popularity <- mega_dataset%>%
   rename(start_lon = `start station longitude`, start_lat = `start station latitude`)%>%
   group_by(start_month, `start station id`, `start station name`, start_lon, start_lat)%>%
@@ -64,7 +64,7 @@ station_id_popularity <- mega_dataset%>%
 ```
 
 
-```{r}
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
 popularity_levels <- c("High", "Moderate", "Low")
 
 station_id_popularity <- station_id_popularity%>%
@@ -82,7 +82,7 @@ popularity_groups <- map(popularity_levels, station_levels)
 
 # Map for all months combined
 
-```{r}
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
 icon.high <- makeAwesomeIcon(icon = 'bicycle', markerColor = 'red', iconColor = 'black', library = "fa")
 icon.moderate <-  makeAwesomeIcon(icon = 'bicycle', markerColor = 'orange', iconColor = 'black', library = "fa")
 icon.low <-  makeAwesomeIcon(icon = 'bicycle', markerColor = 'green', iconColor = 'black', library = "fa")
@@ -121,7 +121,7 @@ leaflet()%>%
 
 # April 2019 (2019/04)
 
-```{r}
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
 station_levels_2019_04 <- function(popularity_arg){
   station_id_popularity %>%
     filter(start_month == "2019/04")%>%
@@ -158,7 +158,7 @@ leaflet()%>%
 
 # April 2020 (2020/04)
 
-```{r}
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
 station_levels_2020_04 <- function(popularity_arg){
   station_id_popularity %>%
     filter(start_month == "2020/04")%>%
@@ -195,7 +195,7 @@ leaflet()%>%
 
 # January 2020 (2020/01)
 
-```{r}
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
 station_levels_2020_01 <- function(popularity_arg){
   station_id_popularity %>%
     filter(start_month == "2020/01")%>%
@@ -233,7 +233,7 @@ leaflet()%>%
 # July 2019
 
 
-```{r}
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
 station_levels_2019_07 <- function(popularity_arg){
   station_id_popularity %>%
     filter(start_month == "2019/07")%>%
@@ -271,7 +271,7 @@ leaflet()%>%
 
 # july 2020
 
-```{r}
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
 station_levels_2020_07 <- function(popularity_arg){
   station_id_popularity %>%
     filter(start_month == "2020/07")%>%
@@ -308,7 +308,7 @@ leaflet()%>%
 
 # October 2019
 
-```{r}
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
 station_levels_2019_10 <- function(popularity_arg){
   station_id_popularity %>%
     filter(start_month == "2019/10")%>%
@@ -343,8 +343,6 @@ leaflet()%>%
 ```
 
 
-**add percentiles**
-**add addresses of the stations**
 
 
 
